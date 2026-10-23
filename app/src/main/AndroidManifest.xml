@@ -17,6 +17,19 @@
     -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
+    <!--
+      桌面插件的 glance-appwidget 会带进 androidx.work，于是合并清单里多出三条：
+      ACCESS_NETWORK_STATE、FOREGROUND_SERVICE、WAKE_LOCK。前两条对纯本地应用没有意义，
+      在这里显式移除；WAKE_LOCK 保留 —— WorkManager 跑后台任务时真的要拿部分唤醒锁，
+      移除它换来的是运行期 SecurityException，不是更干净的隐私声明。
+    -->
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        tools:node="remove" />
+
     <application
         android:name=".PaopaoApplication"
         android:allowBackup="true"

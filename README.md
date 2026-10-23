@@ -23,14 +23,21 @@
 
 ## 隐私
 
-申请的权限只有这几项，且都不涉及数据外传：
+自己声明的权限只有这几项，且都不涉及数据外传：
 
 - `POST_NOTIFICATIONS`（提醒通知，Android 13+ 运行时申请一次）
 - `VIBRATE`（通知振动）
 - `RECEIVE_BOOT_COMPLETED`（重启后重排闹钟）
 - `SCHEDULE_EXACT_ALARM`（精确提醒；用户可在系统设置里撤销，撤销后降级）
 
-**刻意不申请**：`INTERNET`、`READ_PHONE_STATE`、`QUERY_ALL_PACKAGES`、`READ_MEDIA_*`、`RECORD_AUDIO`、`USE_EXACT_ALARM`、`FOREGROUND_SERVICE*`、`READ_CALENDAR` / `WRITE_CALENDAR`。
+最终 APK 的合并清单里还会多出两条，来自依赖而非本项目：
+
+- `WAKE_LOCK` — 桌面插件把 `androidx.work` 带进来，WorkManager 跑后台任务时要拿部分唤醒锁。硬移除它换来的是运行期 `SecurityException`，所以保留。
+- `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`（`signature` 级）— `androidx.core` 为注册未导出接收器自动加的，不授予第三方应用。
+
+`ACCESS_NETWORK_STATE` 和 `FOREGROUND_SERVICE` 同样由 `androidx.work` 带入，对纯本地应用没有意义，已在清单里用 `tools:node="remove"` 摘掉。
+
+**刻意不申请**：`INTERNET`、`READ_PHONE_STATE`、`QUERY_ALL_PACKAGES`、`READ_MEDIA_*`、`RECORD_AUDIO`、`USE_EXACT_ALARM`、`READ_CALENDAR` / `WRITE_CALENDAR`。
 与系统日历互通不在初版范围内，因此不申请日历读写权限。
 
 ## 构建

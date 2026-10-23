@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      刻意不申请 INTERNET：初版是纯本地应用，数据不出设备。
+      也不申请 READ_PHONE_STATE / QUERY_ALL_PACKAGES / READ_MEDIA_* / RECORD_AUDIO，
+      这些是广告与统计 SDK 的配额，不是日历功能的配额。
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--
+      提醒用可撤销的 SCHEDULE_EXACT_ALARM，并在未授权时退化成非精确闹钟。
+      不用 USE_EXACT_ALARM：那条权限是给闹钟类应用的，日历应用拿它没有解释。
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <application
+        android:name=".PaopaoApplication"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.PaopaoCalendar"
+        tools:targetApi="34">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.PaopaoCalendar"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".reminder.ReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".reminder.BootCompletedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ==================== 桌面插件 ==================== -->
+        <receiver
+            android:name=".widget.inventory.MonthInventoryWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_month_inventory">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_month_inventory_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.inventory.QuadrantInventoryWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_quadrant_inventory">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quadrant_inventory_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.inventory.TodoInventoryWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_todo_inventory">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_todo_inventory_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.habit.HabitWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_habit">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_habit_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.memorial.MemorialWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_memorial">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_memorial_info" />
+        </receiver>
+
+    </application>
+
+</manifest>

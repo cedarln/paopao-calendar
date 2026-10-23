@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose 自己接管配色，这里只提供启动窗口，避免冷启动白屏。 -->
+    <style name="Theme.PaopaoCalendar" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/surface</item>
+        <item name="android:statusBarColor">@color/surface</item>
+    </style>
+</resources>

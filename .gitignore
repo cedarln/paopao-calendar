@@ -1,0 +1,18 @@
+# 构建产物
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# 签名与本地凭据：绝不入库
+*.jks
+*.keystore
+keystore.properties
+secrets.properties

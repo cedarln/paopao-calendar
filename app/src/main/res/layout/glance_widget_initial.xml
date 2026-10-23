@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Glance 插件仍然需要一个 initialLayout，它在首帧之前只显示一瞬。
+     用透明 FrameLayout 而不是纯色，避免添加插件时闪一下灰块。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />

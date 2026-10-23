@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">泡泡日历</string>
+
+    <!-- 底部导航 -->
+    <string name="nav_calendar">日历</string>
+    <string name="nav_inventory">清单</string>
+    <string name="nav_focus">专注</string>
+    <string name="nav_more">更多</string>
+
+    <!-- 模块 -->
+    <string name="title_inventory">事项清单</string>
+    <string name="title_quadrant">四象限</string>
+    <string name="title_habit">习惯</string>
+    <string name="title_focus">番茄专注</string>
+    <string name="title_memorial">纪念日</string>
+    <string name="title_settings">设置</string>
+    <string name="title_trash">回收站</string>
+
+    <!-- 四象限 -->
+    <string name="quadrant_q1">重要且紧急</string>
+    <string name="quadrant_q2">重要不紧急</string>
+    <string name="quadrant_q3">紧急不重要</string>
+    <string name="quadrant_q4">不紧急不重要</string>
+    <string name="quadrant_q1_hint">马上做</string>
+    <string name="quadrant_q2_hint">计划做</string>
+    <string name="quadrant_q3_hint">委派掉</string>
+    <string name="quadrant_q4_hint">可以删</string>
+
+    <!-- 通用 -->
+    <string name="action_add">添加</string>
+    <string name="action_save">保存</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">删除</string>
+    <string name="action_restore">恢复</string>
+    <string name="action_search">搜索</string>
+    <string name="action_done">完成</string>
+    <string name="empty_inventory">还没有事项。四象限的意义在于逼你把「紧急」和「重要」分开想。</string>
+    <string name="empty_events">这一天是空的。</string>
+
+    <!-- 设置 -->
+    <string name="settings_month_view">月视图外观</string>
+    <string name="settings_content">显示内容</string>
+    <string name="settings_show_lunar">显示农历</string>
+    <string name="settings_show_solar_term">显示节气</string>
+    <string name="settings_show_holiday">显示法定节假日</string>
+    <string name="settings_first_day">周起始日</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_privacy">隐私</string>
+    <string name="settings_privacy_summary">本应用不申请 INTERNET 权限，所有数据只存在设备上。</string>
+
+    <!-- 桌面插件 -->
+    <string name="widget_month_inventory">泡泡日历 · 月视图事项</string>
+    <string name="widget_quadrant_inventory">泡泡日历 · 四象限</string>
+    <string name="widget_todo_inventory">泡泡日历 · 今日待办</string>
+    <string name="widget_habit">泡泡日历 · 习惯打卡</string>
+    <string name="widget_memorial">泡泡日历 · 纪念日</string>
+    <string name="widget_description_month">当月日历与每日事项密度</string>
+    <string name="widget_description_quadrant">四象限矩阵，直接看清哪一格堆了太多东西</string>
+    <string name="widget_description_todo">今天要办的事</string>
+    <string name="widget_description_habit">本周习惯完成环</string>
+    <string name="widget_description_memorial">最近的纪念日与倒数天数</string>
+
+    <string name="widget_empty">今天没有安排</string>
+
+    <!-- 提醒 -->
+    <string name="reminder_channel_name">日程提醒</string>
+    <string name="reminder_channel_description">日程开始前的提醒通知</string>
+</resources>

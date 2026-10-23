@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 24/25 的回退图标：mipmap 目录放 vector 是合法的，
+     这样不必为 minSdk 24 准备五套 PNG。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#2E8B7A"
+        android:pathData="M20,16h68a8,8 0 0 1 8,8v60a8,8 0 0 1 -8,8H20a8,8 0 0 1 -8,-8V24a8,8 0 0 1 8,-8z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,30h44a4,4 0 0 1 4,4v8H28v-8a4,4 0 0 1 4,-4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,52m-7,0a7,7 0 1,0 14,0a7,7 0 1,0 -14,0" />
+    <path
+        android:fillColor="#E07B54"
+        android:pathData="M64,52m-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.7"
+        android:pathData="M40,72m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.7"
+        android:pathData="M56,72m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+</vector>

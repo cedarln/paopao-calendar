@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 只备份数据库：偏好设置里没有需要跨设备迁移的东西，
+     而桌面插件的实例 id 一旦被还原到另一台设备，会指向不存在的主屏槽位并静默失效。 -->
+<full-backup-content>
+    <include domain="database" path="paopao.db" />
+</full-backup-content>

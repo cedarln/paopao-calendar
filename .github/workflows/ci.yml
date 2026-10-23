@@ -16,7 +16,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      # 不跑 android-actions/setup-android：它要装的 `tools` 包在 runner 的
+      # cmdline-tools 16.0 里已经被删掉，装不上直接让 job 失败。runner 镜像自带
+      # Android SDK 且 licenses 已接受，缺 platform / build-tools 时 AGP 会自己补下载。
 
       - uses: gradle/actions/setup-gradle@v4
         with:

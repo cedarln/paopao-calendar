@@ -51,6 +51,10 @@
 
 安装到设备：`adb install -r app/build/outputs/apk/debug/app-debug.apk`
 
+CI（`.github/workflows/ci.yml`）在每次 push 上跑单元测试与 debug 打包，APK 作为构建产物上传。
+它不带 `android-actions/setup-android`，因为那个 action 要装的 `tools` SDK 包在 runner 的
+cmdline-tools 里已经不存在；镜像自带的 SDK 加上 AGP 的按需补下载就够了。
+
 ## 目录结构
 
 ```
@@ -81,7 +85,7 @@ app/src/main/java/com/paopao/calendar/
 初版是**编译与单元测试通过**的状态，还没有在真机或模拟器上跑过完整流程，以下是明确未完成的：
 
 - 界面只在代码里成立，实际排版、手势与深色模式需要一轮设备验证
-- 未配置 release 签名，只能装 debug 包
+- `assembleRelease` 能跑通（R8 + 资源压缩，未签名产物 2.4MB，对比 debug 包 19MB），但没配签名密钥，这个包装不上设备；CI 只发布 debug 包
 - 提醒窗口只排未来 14 天，靠冷启动/开机重排兜住，缺一个前台定时器补漏
 - 调休补班数据源留成接口但返回空——放假安排每年由官方发布，硬编码会在下一年变成错误信息
 - 与系统日历（ICS）互通、多设备同步、英文文案完善均未开始

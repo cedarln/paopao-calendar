@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +10,15 @@ plugins {
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
+
+// 签名材料只从 signing/keystore.properties 读，整个目录在 .gitignore 里。
+// 没有这个文件时 release 退回「构建得出来但没签名」，而不是把构建打红：
+// 干净 clone 与 fork 仍然能编译，CI 有 secrets 时才产出可安装的包。
+val keystoreProps = Properties().apply {
+    val file = rootProject.file("signing/keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val hasSigningKey = keystoreProps.getProperty("storeFile") != null
 
 android {
     namespace = "com.paopao.calendar"
@@ -26,6 +37,17 @@ android {
         resourceConfigurations += listOf("zh", "en")
     }
 
+    signingConfigs {
+        if (hasSigningKey) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -35,6 +57,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // 缺签名文件时这里是 null，packageRelease 产出 -unsigned 包；
+            // 那样的包装不上设备，但构建与 CI 不因此失败。
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

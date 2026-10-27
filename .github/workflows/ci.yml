@@ -30,8 +30,52 @@ jobs:
       - name: Debug APK
         run: ./gradlew --no-daemon assembleDebug
 
+      # Secrets 只有本仓库的 push 事件拿得到；fork PR 里这一步是空操作，
+      # 于是 release 产出未签名包，job 仍然绿——构建能力不该依赖私有凭据。
+      - name: Restore release keystore
+        env:
+          PAOPAO_KEYSTORE_BASE64: ${{ secrets.PAOPAO_KEYSTORE_BASE64 }}
+          PAOPAO_KEYSTORE_PASSWORD: ${{ secrets.PAOPAO_KEYSTORE_PASSWORD }}
+          PAOPAO_KEY_PASSWORD: ${{ secrets.PAOPAO_KEY_PASSWORD }}
+        run: |
+          if [ -z "${PAOPAO_KEYSTORE_BASE64:-}" ]; then
+            echo "没有 keystore secret，release 走未签名产物"
+            exit 0
+          fi
+          mkdir -p signing
+          printf '%s' "$PAOPAO_KEYSTORE_BASE64" | base64 -d > signing/paopao-release.keystore
+          {
+            printf 'storeFile=signing/paopao-release.keystore\n'
+            printf 'storePassword=%s\n' "$PAOPAO_KEYSTORE_PASSWORD"
+            printf 'keyAlias=paopao-release\n'
+            printf 'keyPassword=%s\n' "$PAOPAO_KEY_PASSWORD"
+          } > signing/keystore.properties
+          chmod 600 signing/paopao-release.keystore signing/keystore.properties
+
+      - name: Release APK
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Report release signing
+        run: |
+          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          echo "产物：$APK"
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f 2>/dev/null | head -1)
+          if [ -z "$SIGNER" ]; then
+            echo "runner 里没有 apksigner，跳过校验"
+          elif "$SIGNER" verify --print-certs "$APK"; then
+            echo "release 包已签名，可直接安装"
+          else
+            echo "release 包未签名（缺 secret 时的预期结果）"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error

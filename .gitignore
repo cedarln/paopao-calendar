@@ -12,6 +12,7 @@ captures/
 *.aab
 
 # 签名与本地凭据：绝不入库
+signing/
 *.jks
 *.keystore
 keystore.properties

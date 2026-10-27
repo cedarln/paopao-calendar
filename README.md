@@ -46,14 +46,47 @@
 
 ```bash
 ./gradlew assembleDebug        # 产物：app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease      # 有签名材料时产物是 app-release.apk，否则 app-release-unsigned.apk
 ./gradlew testDebugUnitTest    # JVM 单元测试
 ```
 
 安装到设备：`adb install -r app/build/outputs/apk/debug/app-debug.apk`
 
-CI（`.github/workflows/ci.yml`）在每次 push 上跑单元测试与 debug 打包，APK 作为构建产物上传。
+CI（`.github/workflows/ci.yml`）在每次 push 上跑单元测试、debug 与 release 打包，两个 APK 都作为构建产物上传。
 它不带 `android-actions/setup-android`，因为那个 action 要装的 `tools` SDK 包在 runner 的
 cmdline-tools 里已经不存在；镜像自带的 SDK 加上 AGP 的按需补下载就够了。
+
+### 签名
+
+release 只从 `signing/keystore.properties` 读签名材料，`signing/` 整个目录不入库：
+
+```properties
+storeFile=signing/paopao-release.keystore
+storePassword=<口令>
+keyAlias=paopao-release
+keyPassword=<口令>
+```
+
+新机器上生成一份：
+
+```bash
+keytool -genkeypair -keystore signing/paopao-release.keystore -storetype PKCS12 \
+  -alias paopao-release -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass "$PASSWORD" -keypass "$PASSWORD" -dname "CN=paopao-calendar, OU=release, O=cedarln, L=Wuhan, C=CN"
+```
+
+`-keypass` 必须和 `-storepass` 一致：PKCS12 不支持每条目独立口令，写成两个的话构建时在
+`packageRelease` 报 `Given final block not properly padded`，看起来像 keystore 损坏，其实是口令不对。
+
+没有 `signing/keystore.properties` 时 `assembleRelease` 照样构建，只是产出未签名包，装不上设备。
+CI 从仓库 Secrets（`PAOPAO_KEYSTORE_BASE64`、`PAOPAO_KEYSTORE_PASSWORD`、`PAOPAO_KEY_PASSWORD`）
+把它还原出来，所以 `main` 每次 push 的 Artifacts 里都有可直接安装的签名包；fork 的 PR 读不到
+Secrets，退回未签名包但不算构建失败——能不能编译不该取决于私有凭据。
+
+签名方案是 APK Signature Scheme v2；minSdk 24 已经不需要 v1（JAR）签名。
+
+> `signing/paopao-release.keystore` 和口令**只存在本机**。换用同一包名覆盖安装必须要同一个 keystore，
+> 弄丢就只能换 `applicationId` 重装。请自行备份到仓库之外。
 
 ## 目录结构
 
@@ -85,7 +118,7 @@ app/src/main/java/com/paopao/calendar/
 初版是**编译与单元测试通过**的状态，还没有在真机或模拟器上跑过完整流程，以下是明确未完成的：
 
 - 界面只在代码里成立，实际排版、手势与深色模式需要一轮设备验证
-- `assembleRelease` 能跑通（R8 + 资源压缩，未签名产物 2.4MB，对比 debug 包 19MB），但没配签名密钥，这个包装不上设备；CI 只发布 debug 包
+- release 包已签名（R8 + 资源压缩，2.4MB，对比 debug 包 19MB），但 R8 之后的**运行时**行为一次都没验证过——keep 规则只是按 Room/Glance 的常识写的，真机若出现类找不到或插件空白，先怀疑混淆
 - 提醒窗口只排未来 14 天，靠冷启动/开机重排兜住，缺一个前台定时器补漏
 - 调休补班数据源留成接口但返回空——放假安排每年由官方发布，硬编码会在下一年变成错误信息
 - 与系统日历（ICS）互通、多设备同步、英文文案完善均未开始

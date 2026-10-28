@@ -215,6 +215,10 @@ object UpdateChecker {
      *
      * 界面上只留得下「文件名 + 大小 + 摘要」三个值（组合重建时 `ReleaseInfo` 整个对象
      * 不在 SaveableStateRegistry 里），所以校验入口也要能用这三个值调。
+     *
+     * 大小与摘要都没有时是放行而不是拒绝：GitHub 早期版本的 asset 不给 `digest`，
+     * 那种情况下还能依靠的是传输层的 TLS 与系统安装器自己的签名校验。
+     * 只要拿到了其中之一，就必须对上，对不上就删包。
      */
     fun verifyFile(ctx: Context, fileName: String, expectedSize: Long, expectedSha256: String): Boolean {
         val f = downloadedFile(ctx, fileName)

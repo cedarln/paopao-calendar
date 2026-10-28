@@ -28,10 +28,17 @@ import kotlinx.coroutines.launch
  */
 class AppContainer(context: Context) {
 
-    private val appContext = context.applicationContext
+    /**
+     * 应用级 Context。
+     *
+     * 公开它是有意的：计时页的语音提示要建 TextToSpeech，检查更新要 DownloadManager 和
+     * FileProvider，两者都只认 Context，而 ViewModel 这边唯一能拿到 Context 的通道就是这个容器。
+     * 存的是 applicationContext，所以不存在泄漏 Activity 的风险。
+     */
+    val appContext = context.applicationContext
 
     val database: PaopaoDatabase = Room.databaseBuilder(
-        context.applicationContext,
+        appContext,
         PaopaoDatabase::class.java,
         PaopaoDatabase.NAME,
     )

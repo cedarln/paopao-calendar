@@ -101,6 +101,9 @@ fun DayCellView(
 ) {
     val scheme = state.settings.colorScheme
     val base = dayTextColor(cell, scheme)
+    // 训练角标：密度点只在 DENSITY_DOT 外观下画，而「这天练过」在其余三种外观里也得看得见
+    val trained = cell.inCurrentMonth && cell.date in state.workoutDays &&
+        state.settings.clockStyle != MonthClockStyle.DENSITY_DOT
 
     Box(
         modifier = modifier
@@ -147,6 +150,17 @@ fun DayCellView(
             }
             subContent(cell, state, base)
         }
+        // 训练角标：密度点只在 DENSITY_DOT 外观下画，而「这天练过」在四种外观里都该看得见
+        if (trained) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 3.dp, end = 3.dp)
+                    .size(5.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiary),
+            )
+        }
     }
 }
 
@@ -157,6 +171,7 @@ private fun subContent(cell: DayCell, state: CalendarUiState, base: Color) {
         MonthClockStyle.DENSITY_DOT -> DensityRow(
             hasEvent = cell.date in state.eventDays,
             hasItem = cell.date in state.itemDays,
+            hasWorkout = cell.date in state.workoutDays,
         )
         MonthClockStyle.LARGE -> SpacerRow()
         MonthClockStyle.LUNAR_SUB -> Text(
@@ -177,7 +192,7 @@ private fun SpacerRow() {
 }
 
 @Composable
-private fun DensityRow(hasEvent: Boolean, hasItem: Boolean) {
+private fun DensityRow(hasEvent: Boolean, hasItem: Boolean, hasWorkout: Boolean) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -185,6 +200,7 @@ private fun DensityRow(hasEvent: Boolean, hasItem: Boolean) {
     ) {
         if (hasEvent) Dot(color = MaterialTheme.colorScheme.primary)
         if (hasItem) Dot(color = MaterialTheme.colorScheme.secondary)
+        if (hasWorkout) Dot(color = MaterialTheme.colorScheme.tertiary)
     }
 }
 

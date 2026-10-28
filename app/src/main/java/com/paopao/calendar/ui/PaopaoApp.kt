@@ -40,6 +40,10 @@ import com.paopao.calendar.ui.navigation.Routes
 import com.paopao.calendar.ui.navigation.TopLevelDestination
 import com.paopao.calendar.ui.settings.MonthSettingsScreen
 import com.paopao.calendar.ui.settings.SettingsScreen
+import com.paopao.calendar.ui.training.ExerciseLibraryScreen
+import com.paopao.calendar.ui.training.TrainingScreen
+import com.paopao.calendar.ui.training.WorkoutPlanEditScreen
+import com.paopao.calendar.ui.training.WorkoutTimerScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
@@ -150,6 +154,37 @@ fun PaopaoApp(
                 MemorialEditScreen(
                     container = container,
                     memorialId = Routes.idOrNull(entry.arguments?.getLong(Routes.ARG_MEMORIAL_ID)),
+                    onBack = navController::popBackStack,
+                )
+            }
+            composable(Routes.TRAINING) {
+                TrainingScreen(container = container, onNavigate = navController::navigate)
+            }
+            composable(Routes.EXERCISE_LIBRARY) {
+                ExerciseLibraryScreen(onBack = navController::popBackStack)
+            }
+            composable(
+                route = Routes.TRAINING_EDIT,
+                arguments = listOf(
+                    navArgument(Routes.ARG_PLAN_ID) { type = NavType.LongType; defaultValue = Routes.NEW },
+                ),
+            ) { entry ->
+                WorkoutPlanEditScreen(
+                    container = container,
+                    planId = Routes.idOrNull(entry.arguments?.getLong(Routes.ARG_PLAN_ID)),
+                    onBack = navController::popBackStack,
+                    onNavigate = navController::navigate,
+                )
+            }
+            composable(
+                route = Routes.WORKOUT_RUN,
+                arguments = listOf(
+                    navArgument(Routes.ARG_PLAN_ID) { type = NavType.LongType; defaultValue = Routes.NEW },
+                ),
+            ) { entry ->
+                WorkoutTimerScreen(
+                    container = container,
+                    planId = Routes.idOrNull(entry.arguments?.getLong(Routes.ARG_PLAN_ID)),
                     onBack = navController::popBackStack,
                 )
             }

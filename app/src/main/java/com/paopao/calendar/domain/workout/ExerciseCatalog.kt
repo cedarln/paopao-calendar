@@ -3,7 +3,7 @@ package com.paopao.calendar.domain.workout
 /**
  * 动作库：常见训练动作百科。
  *
- * 内容来自作者自己的 fit-miniapp（`data/exercises.js`，29 条），字段语义原样保留：
+ * 内容来自作者自己的 fit-miniapp（`data/exercises.js`，30 条），字段语义原样保留：
  * 名称 / 部位 / 器械 / 难度 / 要领 / 避坑提示。这里是纯静态数据，不依赖 Android，
  * 所以能直接在 JVM 单测里断言条数与筛选结果。
  *

@@ -14,6 +14,7 @@
     <string name="title_habit">习惯</string>
     <string name="title_focus">番茄专注</string>
     <string name="title_memorial">纪念日</string>
+    <string name="title_training">训练</string>
     <string name="title_settings">设置</string>
     <string name="title_trash">回收站</string>
 
@@ -55,11 +56,13 @@
     <string name="widget_todo_inventory">泡泡日历 · 今日待办</string>
     <string name="widget_habit">泡泡日历 · 习惯打卡</string>
     <string name="widget_memorial">泡泡日历 · 纪念日</string>
+    <string name="widget_training">泡泡日历 · 今日训练</string>
     <string name="widget_description_month">当月日历与每日事项密度</string>
     <string name="widget_description_quadrant">四象限矩阵，直接看清哪一格堆了太多东西</string>
     <string name="widget_description_todo">今天要办的事</string>
     <string name="widget_description_habit">本周习惯完成环</string>
     <string name="widget_description_memorial">最近的纪念日与倒数天数</string>
+    <string name="widget_description_training">今天排到的训练计划，点圆圈就地打卡</string>
 
     <string name="widget_empty">今天没有安排</string>
 

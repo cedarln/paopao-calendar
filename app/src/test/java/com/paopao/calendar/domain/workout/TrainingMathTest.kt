@@ -1,5 +1,7 @@
 package com.paopao.calendar.domain.workout
 
+import com.paopao.calendar.data.local.entity.WorkoutLogEntity
+import com.paopao.calendar.data.local.entity.WorkoutPlanEntity
 import com.paopao.calendar.domain.model.DayOfWeekMask
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -82,4 +84,68 @@ class TrainingMathTest {
         assertEquals(DayOfWeekMask.NONE, TrainingMath.weekMaskFromJsDayNumbers(listOf(7, -1, 99)))
         assertEquals(DayOfWeekMask.of(DayOfWeek.MONDAY), TrainingMath.weekMaskFromJsDayNumbers(listOf(1, 8)))
     }
+
+    @Test
+    fun `schedule check reads the same mask the calendar uses`() {
+        val monday = LocalDate.of(2026, 10, 26)     // 周一
+        val sunday = LocalDate.of(2026, 11, 1)      // 周日
+        val workdays = DayOfWeekMask.WORKDAYS.bits
+        assertTrue(TrainingMath.isScheduledOn(workdays, monday))
+        assertFalse(TrainingMath.isScheduledOn(workdays, sunday))
+        assertTrue(TrainingMath.isScheduledOn(DayOfWeekMask.ALL.bits, sunday))
+        // 掩码为 0 是没排任何一天，不是「每天」——坏数据不该在日历上天天冒出来
+        assertFalse(TrainingMath.isScheduledOn(0, monday))
+    }
+
+    @Test
+    fun `day view lists scheduled plans and drops the checked-in one`() {
+        val monday = LocalDate.of(2026, 10, 26)
+        val everyday = plan(id = 1, weekMask = DayOfWeekMask.ALL.bits)
+        val weekendOnly = plan(id = 2, weekMask = DayOfWeekMask.WEEKEND.bits)
+        val unscheduled = plan(id = 3, weekMask = 0)
+
+        assertEquals(
+            listOf(1L),
+            TrainingMath.plansToCheckIn(listOf(everyday, weekendOnly, unscheduled), emptyList(), monday)
+                .map { it.id },
+        )
+        // 打过卡就不再冒出「待打卡」，否则手滑按两次会把当天时长翻倍
+        assertTrue(
+            TrainingMath.plansToCheckIn(
+                listOf(everyday),
+                listOf(log(planId = 1L, epochDay = monday.toEpochDay())),
+                monday,
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `free training log does not hide a scheduled plan`() {
+        val monday = LocalDate.of(2026, 10, 26)
+        val everyday = plan(id = 1, weekMask = DayOfWeekMask.ALL.bits)
+        // 自由训练的日志 planId 为空，它不该被当成「今天这个计划已经练过」
+        val logs = listOf(log(planId = null, epochDay = monday.toEpochDay()))
+        assertEquals(listOf(1L), TrainingMath.plansToCheckIn(listOf(everyday), logs, monday).map { it.id })
+        // 昨天的打卡不影响今天
+        assertEquals(
+            listOf(1L),
+            TrainingMath.plansToCheckIn(listOf(everyday), listOf(log(planId = 1L, epochDay = monday.minusDays(1).toEpochDay())), monday)
+                .map { it.id },
+        )
+    }
+
+    private fun plan(id: Long, weekMask: Int) = WorkoutPlanEntity(
+        id = id,
+        name = "计划$id",
+        bodyPart = "全身",
+        weekMask = weekMask,
+        estimatedMinutes = 20,
+        colorArgb = 0,
+    )
+
+    private fun log(planId: Long?, epochDay: Long) = WorkoutLogEntity(
+        epochDay = epochDay,
+        planId = planId,
+        planName = planId?.let { "计划$it" } ?: WorkoutLogEntity.FALLBACK_NAME,
+    )
 }

@@ -31,6 +31,15 @@ val FestivalBadge = Color(0xFFE07B54)
 val SolarTermBadge = Color(0xFF2E8B7A)
 val OutOfMonthText = Color(0xFFC7CBD1)
 
+/**
+ * 训练模块的强调色：月视图角标、打卡圆点、计时环都从这一路取。
+ *
+ * 之所以单开一色而不是复用 primary：日历格子上「今天有日程」已经是青绿点，
+ * 训练再叠同一种颜色，两种信息就变成同一条信息了。
+ */
+val TrainingLight = Color(0xFF3F7FA8)
+val TrainingDark = Color(0xFF8FC7DE)
+
 /** 表单里给日程/事项/习惯/纪念日挑颜色用的固定色板。 */
 val SwatchPalette = listOf(
     0xFF2E8B7A.toInt(),
@@ -50,6 +59,12 @@ private val LightColors = lightColorScheme(
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFFFDCCB),
     onSecondaryContainer = Color(0xFF3D1B0C),
+    // 训练色占 tertiary 这一路：月视图角标、打卡圆点、计划条都从它取色。
+    // M3 默认的 tertiary 是紫色，和这套青绿+珊瑚的配色没有半点关系，必须显式覆盖。
+    tertiary = TrainingLight,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFCFE4F0),
+    onTertiaryContainer = Color(0xFF06303F),
     surface = Color(0xFFFBFDFC),
     onSurface = Color(0xFF191C1B),
     surfaceVariant = Color(0xFFDCE5E1),
@@ -66,6 +81,10 @@ private val DarkColors = darkColorScheme(
     onPrimaryContainer = Color(0xFF7FD3BE),
     secondary = Color(0xFFFFB59A),
     onSecondary = Color(0xFF3D1B0C),
+    tertiary = TrainingDark,
+    onTertiary = Color(0xFF06303F),
+    tertiaryContainer = Color(0xFF1B4A5F),
+    onTertiaryContainer = Color(0xFFCFE4F0),
     surface = Color(0xFF191C1B),
     onSurface = Color(0xFFE1E8E5),
     surfaceVariant = Color(0xFF3F4946),

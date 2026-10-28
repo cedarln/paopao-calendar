@@ -71,3 +71,7 @@ internal fun toggleInventoryAction(inventoryId: Long): Action =
 
 internal fun toggleHabitAction(habitId: Long): Action =
     actionRunCallback<ToggleHabitTodayCallback>(actionParametersOf(ParamHabitId to habitId))
+
+/** 今天练没练，在桌面上点一下就完事；再点一次撤销。 */
+internal fun checkInWorkoutAction(planId: Long): Action =
+    actionRunCallback<CheckInWorkoutCallback>(actionParametersOf(ParamWorkoutPlanId to planId))

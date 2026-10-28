@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material3.HorizontalDivider
@@ -32,7 +33,7 @@ import com.paopao.calendar.ui.navigation.Routes
 /**
  * 「更多」页承载不进底部导航的模块。
  *
- * 底栏只留四个位置是有意的：习惯与纪念日的使用频率低于日程和清单，
+ * 底栏只留四个位置是有意的：习惯、训练与纪念日的使用频率低于日程和清单，
  * 让它们和「设置」抢一个常驻入口，四个图标就变成五个了。
  */
 @Composable
@@ -45,6 +46,7 @@ fun MoreScreen(navController: NavHostController) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
             MoreEntry(R.string.title_habit, Icons.Filled.TrackChanges) { navController.navigate(Routes.HABIT) }
+            MoreEntry(R.string.title_training, Icons.Filled.FitnessCenter) { navController.navigate(Routes.TRAINING) }
             MoreEntry(R.string.title_memorial, Icons.Filled.Event) { navController.navigate(Routes.MEMORIAL) }
             HorizontalDivider()
             MoreEntry(R.string.settings_month_view, Icons.Filled.CalendarMonth) {

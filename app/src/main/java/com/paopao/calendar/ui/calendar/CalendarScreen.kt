@@ -3,6 +3,8 @@
 package com.paopao.calendar.ui.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +25,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AssistChip
@@ -37,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -56,11 +62,14 @@ import com.paopao.calendar.AppContainer
 import com.paopao.calendar.data.local.entity.EventEntity
 import com.paopao.calendar.data.local.entity.InventoryEntity
 import com.paopao.calendar.data.local.entity.MemorialEntity
+import com.paopao.calendar.data.local.entity.WorkoutLogEntity
+import com.paopao.calendar.data.local.entity.WorkoutPlanEntity
 import com.paopao.calendar.data.settings.AppSettings
 import com.paopao.calendar.domain.calendar.ChineseCalendar
 import com.paopao.calendar.domain.model.CalendarViewMode
 import com.paopao.calendar.domain.model.Recurrence
 import com.paopao.calendar.domain.model.RecurrenceCodec
+import com.paopao.calendar.domain.workout.TrainingMath
 import com.paopao.calendar.ui.appViewModelFactory
 import com.paopao.calendar.ui.common.CommonFormatters
 import com.paopao.calendar.ui.navigation.Routes
@@ -71,6 +80,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 /** 可选月份范围：1901—2099，够覆盖两代人的农历查询，也让 pager 页数是个常量。 */
 private val FirstMonth = YearMonth.of(1901, 1)
@@ -166,6 +177,11 @@ fun CalendarScreen(
             onOpenEvent = calendarViewModel::openEventEditor,
             onToggleItem = calendarViewModel::toggleItemDone,
             onAddItem = { onNavigate(Routes.inventoryEdit(epochDay = state.selectedDate.toEpochDay())) },
+            onCheckIn = calendarViewModel::checkIn,
+            onCheckInFree = { calendarViewModel.checkInFreeTraining() },
+            onUndoWorkout = calendarViewModel::undoWorkout,
+            onOpenTraining = { onNavigate(Routes.TRAINING) },
+            onRunPlan = { planId -> onNavigate(Routes.workoutRun(planId)) },
             modifier = Modifier.weight(1f),
         )
     }
@@ -264,6 +280,11 @@ private fun DayAgenda(
     onOpenEvent: (EventEntity) -> Unit,
     onToggleItem: (InventoryEntity) -> Unit,
     onAddItem: () -> Unit,
+    onCheckIn: (WorkoutPlanEntity) -> Unit,
+    onCheckInFree: () -> Unit,
+    onUndoWorkout: (WorkoutLogEntity) -> Unit,
+    onOpenTraining: () -> Unit,
+    onRunPlan: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val agenda = state.agenda
@@ -291,6 +312,17 @@ private fun DayAgenda(
                         )
                     },
                 )
+                AssistChip(
+                    onClick = onOpenTraining,
+                    label = { Text("训练") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.FitnessCenter,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    },
+                )
             }
             Spacer(Modifier.height(6.dp))
         }
@@ -310,6 +342,129 @@ private fun DayAgenda(
         }
         items(agenda.items, key = { "item-${it.id}" }) { item ->
             InventoryRow(item = item, onToggle = { onToggleItem(item) })
+        }
+        // 待打卡排在已打卡前面：这一屏的价值是「还剩什么没做」，不是复盘
+        items(agenda.planned, key = { "planned-${it.id}" }) { plan ->
+            PlannedWorkoutRow(
+                plan = plan,
+                onCheckIn = { onCheckIn(plan) },
+                onRun = { onRunPlan(plan.id) },
+            )
+        }
+        items(agenda.workouts, key = { "workout-${it.id}" }) { log ->
+            WorkoutRow(log = log, onUndo = { onUndoWorkout(log) })
+        }
+        if (agenda.workouts.isEmpty() && agenda.planned.isEmpty()) {
+            item {
+                AssistChip(
+                    onClick = onCheckInFree,
+                    label = { Text("记一次自由训练") },
+                    leadingIcon = {
+                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    },
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 排在今日、还没打卡的计划。
+ *
+ * 两个动作分开：右边圆点是「今天练过了」的一键记账，整行的「开始」才进计时页 ——
+ * 大多数补卡场景用户只是想把它记上，不想被拖进一个 30 分钟的计时器。
+ */
+@Composable
+private fun PlannedWorkoutRow(
+    plan: WorkoutPlanEntity,
+    onCheckIn: () -> Unit,
+    onRun: () -> Unit,
+) {
+    val accent = Color(plan.colorArgb)
+    Card(
+        onClick = onRun,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 34.dp)
+                    .clip(CircleShape)
+                    .background(accent),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = plan.name.ifBlank { "未命名计划" },
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${plan.bodyPart} · 约 ${plan.estimatedMinutes} 分钟 · ${TrainingMath.kilocalories(plan.estimatedMinutes)} 千卡",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = onRun) { Text("开始") }
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .padding(4.dp)
+                    .clip(CircleShape)
+                    .border(width = 2.dp, color = accent, shape = CircleShape)
+                    .clickable(onClick = onCheckIn),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = "打卡",
+                    tint = accent,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutRow(log: WorkoutLogEntity, onUndo: () -> Unit) {
+    val minutes = (log.durationSec / 60f).roundToInt()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Filled.FitnessCenter,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(log.planName, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = "${max(minutes, 1)} 分钟 · ${TrainingMath.kilocalories(max(minutes, 1))} 千卡",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = onUndo) { Text("撤销") }
         }
     }
 }

@@ -126,6 +126,18 @@
                 android:resource="@xml/widget_memorial_info" />
         </receiver>
 
+        <receiver
+            android:name=".widget.training.TrainingWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_training">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_training_info" />
+        </receiver>
+
     </application>
 
 </manifest>

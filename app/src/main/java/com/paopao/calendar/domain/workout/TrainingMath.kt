@@ -1,5 +1,7 @@
 package com.paopao.calendar.domain.workout
 
+import com.paopao.calendar.data.local.entity.WorkoutLogEntity
+import com.paopao.calendar.data.local.entity.WorkoutPlanEntity
 import com.paopao.calendar.domain.model.DayOfWeekMask
 import java.time.LocalDate
 import kotlin.math.max
@@ -34,8 +36,36 @@ object TrainingMath {
      */
     fun estimateDurationSec(reps: Int, sets: Int): Int = reps * 5 * sets
 
+    /**
+     * 单组的工作秒数，计时器按组推进时用。
+     *
+     * 注意与 [totalSeconds] 的口径差别：库里 `durationSec` 存的是**这个动作所有组的总时长**
+     * （小程序的估算公式 `totalSec = Σ(durationSec + restSec)` 就是这么算的），
+     * 所以一组时长要除回组数。除不尽时按四舍五入给每一组，全动作累计可能差几秒 ——
+     * 计时器落库的是实际耗时，这个误差只影响每组显示，不影响任何统计数字。
+     * 每组下限取 1 秒，免得状态机停在「工作 0 秒」上看着像卡死；唯一例外是 `durationSec`
+     * 本来就是 0 的坏数据，那时原样返回 0，不在这里把数据问题伪装成一次真实训练。
+     */
+    fun setWorkSec(durationSec: Int, sets: Int): Int {
+        if (durationSec <= 0) return 0
+        val groupCount = max(1, sets)
+        return if (groupCount == 1) {
+            durationSec
+        } else {
+            (durationSec.toFloat() / groupCount).roundToInt().coerceAtLeast(1)
+        }
+    }
+
     /** 热量估算：每分钟 6.5 千卡，取整。同 report.js。 */
     fun kilocalories(minutes: Int): Int = (minutes * 6.5f).roundToInt()
+
+    /**
+     * 「一键打卡」（不进计时页、按下去就算练了）写入的秒数。
+     *
+     * 取计划的预计分钟数，空白计划兜到 1 分钟：0 秒的日志在热力图上什么都不会亮，
+     * 用户按了却看不到反馈，等于这次打卡白按。
+     */
+    fun quickCheckInSec(estimatedMinutes: Int): Int = max(1, estimatedMinutes) * 60
 
     /**
      * 连续打卡天数。
@@ -54,6 +84,31 @@ object TrainingMath {
             cursor = cursor.minusDays(1)
         }
         return count
+    }
+
+    /**
+     * 某天是否排在计划里。
+     *
+     * `weekMask == 0` 读成「没安排任何一天」而不是「每天」：默认值已经是全周，
+     * 真出现 0 只能是数据被写坏了，此时宁可什么都不冒出来，也不要在日历上每天提醒一遍。
+     */
+    fun isScheduledOn(weekMask: Int, date: LocalDate): Boolean =
+        weekMask != 0 && DayOfWeekMask(weekMask).contains(date.dayOfWeek)
+
+    /**
+     * 选中日「排了但还没打卡」的计划。
+     *
+     * 已打卡的要摘掉：同一天连按两次「打卡」会写两条日志，而连续天数只看天，
+     * 多出来的那条只会让当天时长虚高。
+     */
+    fun plansToCheckIn(
+        plans: List<WorkoutPlanEntity>,
+        logs: List<WorkoutLogEntity>,
+        date: LocalDate,
+    ): List<WorkoutPlanEntity> {
+        val epochDay = date.toEpochDay()
+        val donePlanIds = logs.filter { it.epochDay == epochDay }.mapNotNull { it.planId }.toSet()
+        return plans.filter { it.id !in donePlanIds && isScheduledOn(it.weekMask, date) }
     }
 
     /**

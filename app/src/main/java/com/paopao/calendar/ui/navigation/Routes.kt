@@ -16,6 +16,7 @@ object Routes {
     const val ARG_EPOCH_DAY = "epochDay"
     const val ARG_HABIT_ID = "habitId"
     const val ARG_MEMORIAL_ID = "memorialId"
+    const val ARG_PLAN_ID = "planId"
 
     /**
      * 日历带可选的「定位到某天」参数：桌面插件点某一天时要落到那一天的议程上。
@@ -40,6 +41,21 @@ object Routes {
     const val INVENTORY_EDIT = "inventory/edit/{$ARG_INVENTORY_ID}/{$ARG_EPOCH_DAY}"
     const val HABIT_EDIT = "habit/edit/{$ARG_HABIT_ID}"
     const val MEMORIAL_EDIT = "memorial/edit/{$ARG_MEMORIAL_ID}"
+
+    /**
+     * 训练模块。
+     *
+     * 计时页的 planId 允许是 [NEW]：那时跑的是「自由训练」——不挂计划、只计时长，
+     * 打完卡写一条 planId 为空的日志。用同一个页面兜两种输入，比复制一个空白计时器省一半代码。
+     */
+    const val TRAINING = "training"
+    const val TRAINING_EDIT = "training/edit/{$ARG_PLAN_ID}"
+    const val EXERCISE_LIBRARY = "training/exercises"
+    const val WORKOUT_RUN = "training/run/{$ARG_PLAN_ID}"
+
+    fun trainingEdit(planId: Long = NEW) = "training/edit/$planId"
+
+    fun workoutRun(planId: Long = NEW) = "training/run/$planId"
 
     /** 新建时的哨兵值。 */
     const val NEW = -1L

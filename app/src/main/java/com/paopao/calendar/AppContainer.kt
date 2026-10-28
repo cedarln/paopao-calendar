@@ -2,6 +2,7 @@ package com.paopao.calendar
 
 import android.content.Context
 import androidx.room.Room
+import com.paopao.calendar.data.local.MIGRATION_1_2
 import com.paopao.calendar.data.local.PaopaoDatabase
 import com.paopao.calendar.data.repository.CategoryRepository
 import com.paopao.calendar.data.repository.EventRepository
@@ -9,6 +10,7 @@ import com.paopao.calendar.data.repository.FocusRepository
 import com.paopao.calendar.data.repository.HabitRepository
 import com.paopao.calendar.data.repository.InventoryRepository
 import com.paopao.calendar.data.repository.MemorialRepository
+import com.paopao.calendar.data.repository.WorkoutRepository
 import com.paopao.calendar.data.settings.SettingsStore
 import com.paopao.calendar.domain.calendar.CalendarEngine
 import com.paopao.calendar.reminder.ReminderNotifier
@@ -21,7 +23,7 @@ import kotlinx.coroutines.launch
 /**
  * 手写依赖图。
  *
- * 不引 Hilt 是一个明确取舍：单模块、六个仓储、三个视图模型的规模下，
+ * 不引 Hilt 是一个明确取舍：单模块、七个仓储、三个视图模型的规模下，
  * 注解处理器带来的构建时长与调试成本高于它省下的样板。等模块数超过两个再换不迟。
  */
 class AppContainer(context: Context) {
@@ -32,7 +34,11 @@ class AppContainer(context: Context) {
         context.applicationContext,
         PaopaoDatabase::class.java,
         PaopaoDatabase.NAME,
-    ).build()
+    )
+        // v0.1.0 已经发出去了，装了旧版的设备升级时必须走迁移而不是重建，
+        // 否则一升级就把日程、习惯和打卡全清掉。
+        .addMigrations(MIGRATION_1_2)
+        .build()
 
     val settingsStore = SettingsStore(context)
     val eventRepository = EventRepository(database.eventDao())
@@ -41,6 +47,7 @@ class AppContainer(context: Context) {
     val focusRepository = FocusRepository(database.focusDao())
     val memorialRepository = MemorialRepository(database.memorialDao())
     val categoryRepository = CategoryRepository(database.categoryDao())
+    val workoutRepository = WorkoutRepository(database.workoutDao())
 
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

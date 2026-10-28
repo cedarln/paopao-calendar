@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider 的可见范围只开一条：应用专属外部存储根（更新包在它的 update/ 子目录里）。
+  Room 数据库、DataStore 偏好、导出备份都不在名单上——系统安装器只需要那一个 APK。
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-files-path name="update_apk" path="." />
+</paths>

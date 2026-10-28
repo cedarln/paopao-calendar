@@ -30,8 +30,11 @@ android {
         applicationId = "com.paopao.calendar"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        // 0.1.0 已经发出去了，且数据库 schema 从 1 走到 2：versionCode 必须递增，
+        // 否则覆盖安装直接被系统拒（INSTALL_FAILED_VERSION_DOWNGRADE 的反面是同版本重装限制），
+        // 应用内更新那条路也永远走不通。
+        versionCode = 2
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += listOf("zh", "en")
@@ -112,6 +115,7 @@ dependencies {
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
+    testImplementation(libs.json)
     testImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

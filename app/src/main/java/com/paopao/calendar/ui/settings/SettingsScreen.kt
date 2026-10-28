@@ -91,10 +91,19 @@ fun SettingsScreen(
                 }
             }
 
+            SectionTitle("更新")
+            UpdateCard()
+
             SectionTitle(stringResource(R.string.settings_privacy))
             Text(
                 text = stringResource(R.string.settings_privacy_summary),
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_network_summary),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(24.dp))

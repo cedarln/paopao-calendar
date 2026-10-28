@@ -48,7 +48,8 @@
     <string name="settings_first_day">周起始日</string>
     <string name="settings_theme">主题</string>
     <string name="settings_privacy">隐私</string>
-    <string name="settings_privacy_summary">本应用不申请 INTERNET 权限，所有数据只存在设备上。</string>
+    <string name="settings_privacy_summary">数据只存在这台设备上：没有账号、没有同步、没有广告与统计，日历、事项、习惯、训练都不上传。</string>
+    <string name="settings_network_summary">唯一的出网入口是上面的「检查更新」：只有你按下那一下，才去 GitHub 的公开接口查一次版本、下载 APK。不收集设备信息，不后台轮询。</string>
 
     <!-- 桌面插件 -->
     <string name="widget_month_inventory">泡泡日历 · 月视图事项</string>

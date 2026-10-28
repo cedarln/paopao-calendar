@@ -3,13 +3,20 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      刻意不申请 INTERNET：初版是纯本地应用，数据不出设备。
-      也不申请 READ_PHONE_STATE / QUERY_ALL_PACKAGES / READ_MEDIA_* / RECORD_AUDIO，
-      这些是广告与统计 SDK 的配额，不是日历功能的配额。
+      数据层不申请任何同步相关的权限：日程、事项、习惯、训练全在设备自己的 Room 库里，
+      没有「云端」。也不申请 READ_PHONE_STATE / QUERY_ALL_PACKAGES / READ_MEDIA_* /
+      RECORD_AUDIO —— 那些是广告与统计 SDK 的配额，不是日历功能的配额。
+
+      INTERNET 与 REQUEST_INSTALL_PACKAGES 是唯一的例外，只服务于「应用内更新」：
+      检查 GitHub Release、下 APK、拉起系统安装器，全程不跳浏览器。这条边界的三条规矩
+      （只有 update/UpdateChecker.kt 碰网络、只有设置页引用它、只在用户按下按钮时动一次）
+      由 NetworkBoundaryTest 守着，不靠注释自觉。
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!--
       提醒用可撤销的 SCHEDULE_EXACT_ALARM，并在未授权时退化成非精确闹钟。
@@ -19,8 +26,9 @@
 
     <!--
       桌面插件的 glance-appwidget 会带进 androidx.work，于是合并清单里多出三条：
-      ACCESS_NETWORK_STATE、FOREGROUND_SERVICE、WAKE_LOCK。前两条对纯本地应用没有意义，
-      在这里显式移除；WAKE_LOCK 保留 —— WorkManager 跑后台任务时真的要拿部分唤醒锁，
+      ACCESS_NETWORK_STATE、FOREGROUND_SERVICE、WAKE_LOCK。我们自己从不查连通性
+      （更新那一下交给 DownloadManager 判断就够了），前两条在这里显式移除；
+      WAKE_LOCK 保留 —— WorkManager 跑后台任务时真的要拿部分唤醒锁，
       移除它换来的是运行期 SecurityException，不是更干净的隐私声明。
     -->
     <uses-permission
@@ -39,6 +47,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PaopaoCalendar"
         tools:targetApi="34">
+
+        <!--
+          应用内更新：DownloadManager 把更新包下到 getExternalFilesDir/update/，
+          经这里授权给系统安装器。exported=false + grantUriPermissions=true：
+          安装器只拿到我们当场递给它的那一条 URI，看不见数据库和偏好设置。
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <activity
             android:name=".MainActivity"

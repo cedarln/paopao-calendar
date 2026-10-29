@@ -28,6 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.paopao.calendar.AppContainer
 import com.paopao.calendar.ui.calendar.CalendarScreen
+import com.paopao.calendar.ui.export.ExportScreen
 import com.paopao.calendar.ui.focus.FocusScreen
 import com.paopao.calendar.ui.habit.HabitEditScreen
 import com.paopao.calendar.ui.habit.HabitScreen
@@ -131,6 +132,9 @@ fun PaopaoApp(
                 MonthSettingsScreen(container = container, onBack = navController::popBackStack)
             }
             composable(Routes.HABIT) { HabitScreen(container = container, onNavigate = navController::navigate) }
+            composable(Routes.EXPORT) {
+                ExportScreen(container = container, onBack = navController::popBackStack)
+            }
             composable(
                 route = Routes.HABIT_EDIT,
                 arguments = listOf(

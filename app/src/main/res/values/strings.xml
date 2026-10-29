@@ -16,6 +16,7 @@
     <string name="title_memorial">纪念日</string>
     <string name="title_training">训练</string>
     <string name="title_settings">设置</string>
+    <string name="title_export">导出备份</string>
     <string name="title_trash">回收站</string>
 
     <!-- 四象限 -->

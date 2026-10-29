@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  FileProvider 的可见范围只开一条：应用专属外部存储根（更新包在它的 update/ 子目录里）。
-  Room 数据库、DataStore 偏好、导出备份都不在名单上——系统安装器只需要那一个 APK。
+  FileProvider 只开两条，各自对应一个明确动作：
+
+  1. update_apk —— 应用专属外部存储根（更新包在它的 update/ 子目录里），给系统安装器读。
+  2. export     —— 缓存里的 exports/ 子目录，导出后按「分享」时把文件交给收件应用。
+
+  Room 数据库与 DataStore 偏好仍然不在名单上：那是应用的运行数据，
+  别的应用拿到只会造成损坏，用户在导出页要的是我们已经筛好的文件，不是原库。
 -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-files-path name="update_apk" path="." />
+    <cache-path name="export" path="exports/" />
 </paths>

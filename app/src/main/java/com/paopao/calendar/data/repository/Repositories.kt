@@ -30,6 +30,9 @@ class HabitRepository(private val dao: HabitDao) {
     suspend fun findLogs(from: LocalDate, to: LocalDate): List<HabitLogEntity> =
         dao.findLogsInRange(from.toEpochDay(), to.toEpochDay())
 
+    /** 导出用：全部打卡历史，含已归档习惯的。 */
+    suspend fun findAllLogs(): List<HabitLogEntity> = dao.findAllLogs()
+
     fun observeLogs(from: LocalDate, to: LocalDate): Flow<List<HabitLogEntity>> =
         dao.observeLogsInRange(from.toEpochDay(), to.toEpochDay())
 
@@ -108,6 +111,9 @@ class FocusRepository(private val dao: FocusDao) {
 
     suspend fun record(session: FocusSessionEntity): Long = dao.insert(session)
 
+    /** 导出用：整表专注记录。 */
+    suspend fun findAll(): List<FocusSessionEntity> = dao.findAll()
+
     suspend fun countOn(day: LocalDate): Int = dao.countBetween(
         from = day.atStartOfDay().toEpochDaySecond(),
         to = day.plusDays(1).atStartOfDay().toEpochDaySecond(),
@@ -183,6 +189,9 @@ class CategoryRepository(private val dao: CategoryDao) {
     fun observeByScope(scope: Int): Flow<List<CategoryEntity>> = dao.observeByScope(scope)
 
     fun observeAll(): Flow<List<CategoryEntity>> = dao.observeAll()
+
+    /** 导出用：分类是历史数据的归属，删掉的（非系统）也要在备份里留痕。 */
+    suspend fun findAll(): List<CategoryEntity> = dao.findAll()
 
     suspend fun upsert(category: CategoryEntity): Long = if (category.id == 0L) {
         dao.insert(category)

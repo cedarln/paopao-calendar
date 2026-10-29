@@ -148,6 +148,7 @@ class EventRepositoryTest {
             emptyList()
 
         override suspend fun findRecurring(): List<EventEntity> = emptyList()
+        override suspend fun findAll(): List<EventEntity> = emptyList()
         override fun observeRecurring(): Flow<List<EventEntity>> = flowOf(emptyList())
         override suspend fun insert(event: EventEntity): Long = event.id
         override suspend fun update(event: EventEntity) = Unit

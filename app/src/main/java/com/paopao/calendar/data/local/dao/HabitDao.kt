@@ -62,6 +62,10 @@ interface HabitDao {
     @Query("SELECT * FROM habit_logs WHERE epochDay BETWEEN :from AND :to")
     suspend fun findLogsInRange(from: Long, to: Long): List<HabitLogEntity>
 
+    /** 导出备份用：全部打卡记录，含已归档习惯的那些 —— 归档只是不再露面，不是抹掉历史。 */
+    @Query("SELECT * FROM habit_logs ORDER BY habitId ASC, epochDay ASC")
+    suspend fun findAllLogs(): List<HabitLogEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun log(entry: HabitLogEntity)
 
@@ -102,6 +106,10 @@ interface FocusDao {
 
     @Query("SELECT * FROM focus_sessions ORDER BY startedAtMillis DESC LIMIT 200")
     fun observeRecent(): Flow<List<FocusSessionEntity>>
+
+    /** 导出备份用：专注记录是唯一能还原「那段时间我把注意力花在哪」的东西，整表带走。 */
+    @Query("SELECT * FROM focus_sessions ORDER BY startedAtMillis ASC")
+    suspend fun findAll(): List<FocusSessionEntity>
 
     @Query("SELECT COALESCE(SUM(actualMinutes), 0) FROM focus_sessions WHERE completed = 1 AND startedAtMillis BETWEEN :from AND :to")
     fun observeTotalMinutesBetween(from: Long, to: Long): Flow<Int>

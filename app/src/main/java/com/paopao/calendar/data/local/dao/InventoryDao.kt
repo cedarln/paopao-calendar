@@ -81,6 +81,15 @@ interface InventoryDao {
     @Query("SELECT * FROM inventories WHERE id = :id")
     suspend fun findById(id: Long): InventoryEntity?
 
+    /**
+     * 导出备份用：整表快照，含回收站里还没过期的软删除事项。
+     *
+     * 不看 deletedAtMillis 也不看 parentId：备份的职责是「换机之后一模一样」，
+     * 在导出侧再筛一遍等于替用户决定哪些数据他没资格带走。
+     */
+    @Query("SELECT * FROM inventories ORDER BY id ASC")
+    suspend fun findAllIncludingDeleted(): List<InventoryEntity>
+
     @Query("SELECT * FROM inventories WHERE deletedAtMillis IS NOT NULL ORDER BY deletedAtMillis DESC")
     fun observeTrash(): Flow<List<InventoryEntity>>
 
@@ -122,6 +131,13 @@ interface InventoryDao {
 
     @Query("SELECT * FROM tags ORDER BY name ASC")
     fun observeTags(): Flow<List<TagEntity>>
+
+    /** 导出备份用：标签表与关系表都要整表，缺一个事项就丢了它的分类线。 */
+    @Query("SELECT * FROM tags ORDER BY id ASC")
+    suspend fun findAllTags(): List<TagEntity>
+
+    @Query("SELECT * FROM inventory_tags ORDER BY inventoryId ASC, tagId ASC")
+    suspend fun findAllLinks(): List<InventoryTagCrossRef>
 
     @Query("SELECT * FROM tags WHERE name = :name LIMIT 1")
     suspend fun findTagByName(name: String): TagEntity?

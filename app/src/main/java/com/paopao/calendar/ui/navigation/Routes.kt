@@ -33,6 +33,9 @@ object Routes {
     const val HABIT = "habit"
     const val MEMORIAL = "memorial"
 
+    /** 导出备份：三种格式 × 两种落点，见 [com.paopao.calendar.ui.export.ExportScreen]。 */
+    const val EXPORT = "export"
+
     /** 具体某一天；-1 表示「保持用户上次看的日期」。 */
     fun calendarAt(epochDay: Long) = "calendar?$ARG_EPOCH_DAY=$epochDay"
 

@@ -56,6 +56,14 @@ interface EventDao {
     @Query("SELECT * FROM events WHERE recurrenceText <> 'none'")
     fun observeRecurring(): Flow<List<EventEntity>>
 
+    /**
+     * 导出备份用：整表快照，含重复母记录与已过期的历史事件。
+     *
+     * 不复用 [findOverlapping]：备份没有「区间」概念，漏掉任何一条都是不可恢复的损失。
+     */
+    @Query("SELECT * FROM events ORDER BY id ASC")
+    suspend fun findAll(): List<EventEntity>
+
     @Insert
     suspend fun insert(event: EventEntity): Long
 
@@ -77,6 +85,10 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories ORDER BY scope ASC, sortOrder ASC")
     fun observeAll(): Flow<List<CategoryEntity>>
+
+    /** 导出备份用：分类即使全部被用户删过也要照原样记下来，历史数据的归属靠它还原。 */
+    @Query("SELECT * FROM categories ORDER BY id ASC")
+    suspend fun findAll(): List<CategoryEntity>
 
     @Query("SELECT COUNT(*) FROM categories WHERE scope = :scope")
     suspend fun countByScope(scope: Int): Int

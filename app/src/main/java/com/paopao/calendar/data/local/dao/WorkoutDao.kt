@@ -37,6 +37,14 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_plans WHERE id = :id")
     suspend fun findPlan(id: Long): WorkoutPlanEntity?
 
+    /** 导出备份用：含已归档计划，归档不等于删除。 */
+    @Query("SELECT * FROM workout_plans ORDER BY id ASC")
+    suspend fun findAllPlans(): List<WorkoutPlanEntity>
+
+    /** 导出备份用：全部计划的动作，一次取回而不是按 planId 循环查。 */
+    @Query("SELECT * FROM plan_actions ORDER BY planId ASC, sortOrder ASC")
+    suspend fun findAllActions(): List<PlanActionEntity>
+
     @Insert
     suspend fun insertPlan(plan: WorkoutPlanEntity): Long
 
@@ -90,6 +98,10 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout_logs WHERE epochDay BETWEEN :from AND :to")
     suspend fun findLogsInRange(from: Long, to: Long): List<WorkoutLogEntity>
+
+    /** 导出备份用：训练历史与习惯打卡同属「已经发生过的事实」，不按区间裁剪。 */
+    @Query("SELECT * FROM workout_logs ORDER BY epochDay ASC, id ASC")
+    suspend fun findAllLogs(): List<WorkoutLogEntity>
 
     /** 月视图只要「哪几天练过」，取回日期列即可，不必搬整行。 */
     @Query("SELECT DISTINCT epochDay FROM workout_logs WHERE epochDay BETWEEN :from AND :to ORDER BY epochDay ASC")

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrackChanges
@@ -49,6 +50,7 @@ fun MoreScreen(navController: NavHostController) {
             MoreEntry(R.string.title_training, Icons.Filled.FitnessCenter) { navController.navigate(Routes.TRAINING) }
             MoreEntry(R.string.title_memorial, Icons.Filled.Event) { navController.navigate(Routes.MEMORIAL) }
             HorizontalDivider()
+            MoreEntry(R.string.title_export, Icons.Filled.FileDownload) { navController.navigate(Routes.EXPORT) }
             MoreEntry(R.string.settings_month_view, Icons.Filled.CalendarMonth) {
                 navController.navigate(Routes.MONTH_SETTINGS)
             }

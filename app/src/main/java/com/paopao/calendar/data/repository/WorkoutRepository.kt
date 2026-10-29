@@ -22,6 +22,18 @@ class WorkoutRepository(private val dao: WorkoutDao) {
 
     suspend fun findPlans(): List<PlanWithActions> = dao.findPlansWithActions()
 
+    /**
+     * 导出用：计划（含已归档）、动作、打卡三条独立快照。
+     *
+     * 没用 [findPlans] 的 PlanWithActions：它靠 Room 的 @Relation 逐计划回查动作，
+     * 备份要的是「表对表原样」，把关系拍平了反而要在导入侧再拆回去。
+     */
+    suspend fun findAllPlansIncludingArchived(): List<WorkoutPlanEntity> = dao.findAllPlans()
+
+    suspend fun findAllActions(): List<PlanActionEntity> = dao.findAllActions()
+
+    suspend fun findAllLogs(): List<WorkoutLogEntity> = dao.findAllLogs()
+
     suspend fun findPlan(id: Long): PlanWithActions? = dao.findPlanWithActions(id)
 
     fun observeArchivedPlans(): Flow<List<WorkoutPlanEntity>> = dao.observeArchivedPlans()

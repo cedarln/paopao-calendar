@@ -2,6 +2,8 @@ package com.paopao.calendar.data.repository
 
 import com.paopao.calendar.data.local.dao.InventoryDao
 import com.paopao.calendar.data.local.entity.InventoryEntity
+import com.paopao.calendar.data.local.entity.InventoryTagCrossRef
+import com.paopao.calendar.data.local.entity.TagEntity
 import com.paopao.calendar.domain.model.Importance
 import com.paopao.calendar.domain.model.Quadrant
 import com.paopao.calendar.domain.model.Recurrence
@@ -83,6 +85,14 @@ class InventoryRepository(private val dao: InventoryDao) {
     fun search(query: String): Flow<List<InventoryEntity>> = dao.search(query)
 
     suspend fun findById(id: Long): InventoryEntity? = dao.findById(id)
+
+    /** 导出用：整表快照，含回收站里的软删除事项。 */
+    suspend fun findAllIncludingTrash(): List<InventoryEntity> = dao.findAllIncludingDeleted()
+
+    /** 导出用：标签与事项-标签关系，两条一起取才不会在备份里留下「事项引用了不存在的标签」。 */
+    suspend fun findAllTags(): List<TagEntity> = dao.findAllTags()
+
+    suspend fun findAllTagLinks(): List<InventoryTagCrossRef> = dao.findAllLinks()
 
     suspend fun upsert(inventory: InventoryEntity): Long {
         val normalized = inventory.copy(

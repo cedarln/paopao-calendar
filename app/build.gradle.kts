@@ -33,8 +33,9 @@ android {
         // 0.1.0 已经发出去了，且数据库 schema 从 1 走到 2：versionCode 必须递增，
         // 否则覆盖安装直接被系统拒（INSTALL_FAILED_VERSION_DOWNGRADE 的反面是同版本重装限制），
         // 应用内更新那条路也永远走不通。
-        versionCode = 2
-        versionName = "0.2.0"
+        // 0.3.0 对应 schema 2→3（habits 加 endEpochDay）；同一条规矩再走一遍。
+        versionCode = 3
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += listOf("zh", "en")

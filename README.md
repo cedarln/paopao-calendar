@@ -124,7 +124,7 @@ app/src/main/java/com/paopao/calendar/
 
 ## 测试覆盖
 
-`./gradlew testDebugUnitTest` 当前 146 个用例通过，集中在会算错的地方：
+`./gradlew testDebugUnitTest` 当前 145 个用例通过，集中在会算错的地方：
 
 - 2024—2030 春节日期、闰月标记、农历月日数值化、节气与副标签优先级
 - 月视图固定 42 格、周起始日切换、今天标记

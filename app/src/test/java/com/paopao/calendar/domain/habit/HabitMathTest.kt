@@ -102,7 +102,7 @@ class HabitMathTest {
 
     @Test
     fun `分母只算已经过去的天`() {
-        val stat = HabitMath.statOf(habit, logs = listOf(log(1L, today)), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
+        val stat = HabitMath.statOf(habit, setOf(today), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
         // 10 月 1 日到 29 日，共 29 天；剩下的 2 天不该把百分比稀释掉
         assertEquals(29, stat.eligibleDays)
         assertEquals(29, stat.expected)
@@ -113,22 +113,22 @@ class HabitMathTest {
     @Test
     fun `分母还要被习惯自己的起止截断`() {
         val startedMidMonth = habit(start = LocalDate.of(2026, 10, 20), end = null)
-        val stat = HabitMath.statOf(startedMidMonth, emptyList(), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
+        val stat = HabitMath.statOf(startedMidMonth, emptySet(), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
         assertEquals(10, stat.eligibleDays) // 20 到 29
 
         val endsTomorrow = habit(start = LocalDate.of(2026, 1, 1), end = LocalDate.of(2026, 10, 30))
-        val yearStat = HabitMath.statOf(endsTomorrow, emptyList(), HabitPeriod.YEAR, today, DayOfWeek.MONDAY)
+        val yearStat = HabitMath.statOf(endsTomorrow, emptySet(), HabitPeriod.YEAR, today, DayOfWeek.MONDAY)
         assertEquals(302, yearStat.eligibleDays) // 1 月 1 日到 10 月 29 日（今天），结束日 30 日还没到
 
         val alreadyOver = habit(start = LocalDate.of(2026, 10, 1), end = LocalDate.of(2026, 10, 10))
-        val overStat = HabitMath.statOf(alreadyOver, emptyList(), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
+        val overStat = HabitMath.statOf(alreadyOver, emptySet(), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
         assertEquals(10, overStat.eligibleDays) // 只算它真实存在的那 10 天
     }
 
     @Test
     fun `未来才开始的周期分母是 0 而不是负数或 NaN`() {
         val nextYear = habit(start = LocalDate.of(2027, 3, 1), end = null)
-        val stat = HabitMath.statOf(nextYear, emptyList(), HabitPeriod.YEAR, today, DayOfWeek.MONDAY)
+        val stat = HabitMath.statOf(nextYear, emptySet(), HabitPeriod.YEAR, today, DayOfWeek.MONDAY)
         assertEquals(0, stat.eligibleDays)
         assertEquals(0, stat.expected)
         assertEquals(0f, stat.rate, 0f)
@@ -137,7 +137,7 @@ class HabitMathTest {
     @Test
     fun `每周三次的习惯按 7 折算而不是每天都算`() {
         val thrice = habit(start = LocalDate.of(2026, 1, 1), end = null, target = 3)
-        val stat = HabitMath.statOf(thrice, emptyList(), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
+        val stat = HabitMath.statOf(thrice, emptySet(), HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
         assertEquals(29, stat.eligibleDays)
         assertEquals(12, stat.expected) // 29 * 3 / 7 = 12.43，四舍五入
     }
@@ -145,7 +145,7 @@ class HabitMathTest {
     @Test
     fun `折算至少给 1 次，别让刚起步的习惯显示 0%`() {
         val weekly = habit(start = today, end = null, target = 1)
-        val stat = HabitMath.statOf(weekly, listOf(log(1L, today)), HabitPeriod.WEEK, today, DayOfWeek.MONDAY)
+        val stat = HabitMath.statOf(weekly, setOf(today), HabitPeriod.WEEK, today, DayOfWeek.MONDAY)
         assertEquals(1, stat.eligibleDays)
         assertEquals(1, stat.expected)
         assertEquals(1f, stat.rate, 0f)
@@ -154,8 +154,8 @@ class HabitMathTest {
     @Test
     fun `超额完成截到 100%，但次数照常报`() {
         val twice = habit(start = LocalDate.of(2026, 10, 1), end = null, target = 2)
-        val logs = (1L..29L).map { log(1L, LocalDate.of(2026, 10, 1).plusDays(it - 1)) }
-        val stat = HabitMath.statOf(twice, logs, HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
+        val days = (0L..28L).map { LocalDate.of(2026, 10, 1).plusDays(it) }.toSet()
+        val stat = HabitMath.statOf(twice, days, HabitPeriod.MONTH, today, DayOfWeek.MONDAY)
         assertEquals(29, stat.done)
         assertTrue(stat.expected < stat.done)
         assertEquals(1f, stat.rate, 0f)
@@ -189,8 +189,8 @@ class HabitMathTest {
     @Test
     fun `合计取整段起止`() {
         val bounded = habit(start = LocalDate.of(2026, 1, 1), end = LocalDate.of(2026, 3, 31))
-        val logs = listOf(log(1L, LocalDate.of(2026, 2, 1)), log(1L, LocalDate.of(2026, 6, 1)))
-        val total = HabitMath.totalOf(bounded, logs, today)
+        val days = setOf(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 6, 1))
+        val total = HabitMath.totalOf(bounded, days, today)
         assertEquals(1, total.done) // 6 月那条在结束日之后，不算
         assertEquals(90, total.eligibleDays) // 1 月 1 日到 3 月 31 日
         assertEquals(90, total.expected)
@@ -198,9 +198,18 @@ class HabitMathTest {
 
     @Test
     fun `总览一次给三个周期`() {
-        val stats = HabitMath.statsOf(habit, emptyList(), today, DayOfWeek.MONDAY)
+        val stats = HabitMath.statsOf(habit, emptySet(), today, DayOfWeek.MONDAY)
         assertEquals(listOf(HabitPeriod.WEEK, HabitPeriod.MONTH, HabitPeriod.YEAR), stats.map { it.period })
         assertEquals("本周", stats.first().period.label)
+    }
+
+    @Test
+    fun `取数辅助把日志折成日期与备注`() {
+        val logs = listOf(log(1L, today, "游泳 40 分钟"), log(2L, today), log(1L, today.minusDays(1)))
+        assertEquals(setOf(today, today.minusDays(1)), HabitMath.daysOf(logs, 1L))
+        assertEquals("游泳 40 分钟", HabitMath.noteOn(logs, 1L, today))
+        assertEquals("", HabitMath.noteOn(logs, 1L, today.minusDays(1)))
+        assertEquals("", HabitMath.noteOn(logs, 2L, today.minusDays(1)))
     }
 
     @Test

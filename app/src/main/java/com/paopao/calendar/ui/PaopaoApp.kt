@@ -31,6 +31,7 @@ import com.paopao.calendar.ui.calendar.CalendarScreen
 import com.paopao.calendar.ui.focus.FocusScreen
 import com.paopao.calendar.ui.habit.HabitEditScreen
 import com.paopao.calendar.ui.habit.HabitScreen
+import com.paopao.calendar.ui.habit.HabitStatsScreen
 import com.paopao.calendar.ui.inventory.InventoryEditScreen
 import com.paopao.calendar.ui.inventory.InventoryScreen
 import com.paopao.calendar.ui.memorial.MemorialEditScreen
@@ -139,6 +140,16 @@ fun PaopaoApp(
                 HabitEditScreen(
                     container = container,
                     habitId = Routes.idOrNull(entry.arguments?.getLong(Routes.ARG_HABIT_ID)),
+                    onBack = navController::popBackStack,
+                )
+            }
+            composable(
+                route = Routes.HABIT_STATS,
+                arguments = listOf(navArgument(Routes.ARG_HABIT_ID) { type = NavType.LongType }),
+            ) { entry ->
+                HabitStatsScreen(
+                    container = container,
+                    habitId = entry.arguments?.getLong(Routes.ARG_HABIT_ID) ?: Routes.NEW,
                     onBack = navController::popBackStack,
                 )
             }

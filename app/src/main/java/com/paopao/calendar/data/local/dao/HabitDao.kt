@@ -26,24 +26,6 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE archivedAtMillis IS NOT NULL ORDER BY archivedAtMillis DESC")
     fun observeArchived(): Flow<List<HabitEntity>>
 
-    /**
-     * 已过结束日、但用户还没归档的习惯。
-     *
-     * 单独一路查询而不是在内存里筛 `observeActive`：结束日本来就该是索引友好的条件，
-     * 而且列表页要把它和「正在进行」分开摆 —— 一个到期的习惯混在待打卡里只会让人以为打卡失败了。
-     */
-    @Query(
-        "SELECT * FROM habits WHERE archivedAtMillis IS NULL " +
-            "AND endEpochDay IS NOT NULL AND endEpochDay < :todayEpochDay ORDER BY endEpochDay DESC",
-    )
-    fun observeFinished(todayEpochDay: Long): Flow<List<HabitEntity>>
-
-    @Query(
-        "SELECT * FROM habits WHERE archivedAtMillis IS NULL " +
-            "AND endEpochDay IS NOT NULL AND endEpochDay < :todayEpochDay ORDER BY endEpochDay DESC",
-    )
-    suspend fun findFinished(todayEpochDay: Long): List<HabitEntity>
-
     /** 导出用：一条不漏，含已归档。 */
     @Query("SELECT * FROM habits ORDER BY id ASC")
     suspend fun findAllIncludingArchived(): List<HabitEntity>

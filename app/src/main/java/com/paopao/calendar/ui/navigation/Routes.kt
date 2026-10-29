@@ -42,6 +42,11 @@ object Routes {
     const val HABIT_EDIT = "habit/edit/{$ARG_HABIT_ID}"
     const val MEMORIAL_EDIT = "memorial/edit/{$ARG_MEMORIAL_ID}"
 
+    /** 单个习惯的总览：本周/本月/本年的完成度、连续天数与带备注的历史。 */
+    const val HABIT_STATS = "habit/stats/{$ARG_HABIT_ID}"
+
+    fun habitStats(habitId: Long) = "habit/stats/$habitId"
+
     /**
      * 训练模块。
      *

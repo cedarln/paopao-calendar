@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,6 +35,7 @@ import com.paopao.calendar.ui.appViewModelFactory
 import com.paopao.calendar.ui.common.ColorSwatchField
 import com.paopao.calendar.ui.common.DateField
 import com.paopao.calendar.ui.common.OptionField
+import com.paopao.calendar.ui.common.SwitchField
 import com.paopao.calendar.ui.theme.SwatchPalette
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,8 +48,11 @@ import kotlinx.coroutines.launch
 /**
  * 习惯编辑。
  *
- * 没有做「打卡历史」入口：一屏放不下的东西在初版里就是没做的东西，
- * 与其留一个空按钮，不如把周目标这个真正决定卡片环形的字段做扎实。
+ * 起止日期是这条表单的全部时间语义：开始日决定日历从哪天起会提示这个习惯，结束日决定它哪天退场。
+ * 结束日留空（存 NULL）就是「无期限」，用户不必为一个长期习惯去填一个 2099 年的假日期。
+ *
+ * 打卡历史与总览不在这一页，在 [HabitStatsScreen]：编辑页管定义，总览页管事实，
+ * 混在一屏里会让「改个名字」和「回看上个月的备注」两种完全不同的心智来回跳转。
  */
 class HabitEditViewModel(
     container: AppContainer,
@@ -84,7 +89,7 @@ class HabitEditViewModel(
         val current = draft.value
         val name = current.name.ifBlank { "未命名习惯" }
         viewModelScope.launch {
-            repository.upsert(current.copy(name = name))
+            repository.upsert(current.normalized().copy(name = name))
             onDone()
         }
     }
@@ -93,6 +98,18 @@ class HabitEditViewModel(
         val current = draft.value
         if (current.id == 0L) return
         viewModelScope.launch { repository.delete(current) }
+    }
+
+    /**
+     * 结束日早于开始日时夹到开始日。
+     *
+     * 用户先填了结束日、又把开始日往后挪，是表单里唯一能让区间反过来的组合。
+     * 与其存进去让 [com.paopao.calendar.domain.habit.HabitMath] 的分母变成 0 ——
+     * 那会造出一个「永远不可能完成、却还挂在列表里」的习惯 —— 不如保存时就修掉。
+     */
+    private fun HabitEntity.normalized(): HabitEntity {
+        val end = endEpochDay ?: return this
+        return if (end < startEpochDay) copy(endEpochDay = startEpochDay) else this
     }
 
     private companion object {
@@ -154,6 +171,32 @@ fun HabitEditScreen(
                 value = LocalDate.ofEpochDay(item.startEpochDay),
                 onValueChange = { day -> viewModel.update { it.copy(startEpochDay = day.toEpochDay()) } },
             )
+
+            SwitchField(
+                label = "设定结束日期",
+                checked = item.endEpochDay != null,
+                onCheckedChange = { on ->
+                    viewModel.update { it.copy(endEpochDay = if (on) it.startEpochDay else null) }
+                },
+            )
+            val endDay = item.endEpochDay
+            if (endDay != null) {
+                DateField(
+                    label = "结束日期",
+                    value = LocalDate.ofEpochDay(endDay),
+                    onValueChange = { day -> viewModel.update { it.copy(endEpochDay = day.toEpochDay()) } },
+                )
+                Text(
+                    text = if (endDay < item.startEpochDay) {
+                        "结束日早于开始日，保存时会按开始日处理"
+                    } else {
+                        "到期后它从日历和插件里退场，打卡记录仍保留在总览里"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(6.dp))
+            }
 
             OptionField(
                 label = "每周目标",

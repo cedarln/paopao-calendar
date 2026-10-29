@@ -19,15 +19,10 @@ class HabitRepository(private val dao: HabitDao) {
 
     fun observeArchived(): Flow<List<HabitEntity>> = dao.observeArchived()
 
-    /** 过了结束日、还没归档的习惯，界面单独分区列。 */
-    fun observeFinished(today: LocalDate): Flow<List<HabitEntity>> = dao.observeFinished(today.toEpochDay())
-
     suspend fun find(id: Long): HabitEntity? = dao.findById(id)
 
     /** 桌面插件用的一次性快照。 */
     suspend fun findActive(): List<HabitEntity> = dao.findActive()
-
-    suspend fun findFinished(today: LocalDate): List<HabitEntity> = dao.findFinished(today.toEpochDay())
 
     /** 导出用：含已归档，一条不漏。 */
     suspend fun findAllIncludingArchived(): List<HabitEntity> = dao.findAllIncludingArchived()

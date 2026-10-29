@@ -97,6 +97,17 @@ object HabitMath {
         return date.minusDays(offset.toLong())
     }
 
+    /** 某个习惯在 [logs] 里出现过的日期，统计与日历标记都以此为输入。 */
+    fun daysOf(logs: List<HabitLogEntity>, habitId: Long): Set<LocalDate> =
+        logs.asSequence()
+            .filter { it.habitId == habitId }
+            .map { LocalDate.ofEpochDay(it.epochDay) }
+            .toSet()
+
+    /** 某天的备注原文；没打卡或没写就是空串。 */
+    fun noteOn(logs: List<HabitLogEntity>, habitId: Long, date: LocalDate): String =
+        logs.firstOrNull { it.habitId == habitId && it.epochDay == date.toEpochDay() }?.note.orEmpty()
+
     /**
      * 一个习惯在某周期里的完成度。
      *
@@ -109,16 +120,16 @@ object HabitMath {
      */
     fun statOf(
         habit: HabitEntity,
-        logs: List<HabitLogEntity>,
+        days: Set<LocalDate>,
         period: HabitPeriod,
         today: LocalDate,
         firstDayOfWeek: DayOfWeek,
     ): HabitStat {
         val (start, end) = periodRange(period, today, firstDayOfWeek)
-        val days = loggedDays(logs, habit.id, start, end)
+        val logged = days.filter { it in start..end }.toSet()
         val eligible = eligibleDays(habit, start, end, today)
         val expected = expectedCount(habit.targetPerWeek, eligible)
-        val done = days.size
+        val done = logged.size
         return HabitStat(
             period = period,
             start = start,
@@ -127,17 +138,17 @@ object HabitMath {
             eligibleDays = eligible,
             expected = expected,
             rate = if (expected <= 0) 0f else (done.toFloat() / expected).coerceAtMost(1f),
-            loggedDays = days,
+            loggedDays = logged,
         )
     }
 
     /** 三个自然周期一次算完，总览页按周/月/年三张卡渲染。 */
     fun statsOf(
         habit: HabitEntity,
-        logs: List<HabitLogEntity>,
+        days: Set<LocalDate>,
         today: LocalDate,
         firstDayOfWeek: DayOfWeek,
-    ): List<HabitStat> = CARDS.map { statOf(habit, logs, it, today, firstDayOfWeek) }
+    ): List<HabitStat> = CARDS.map { statOf(habit, days, it, today, firstDayOfWeek) }
 
     /**
      * 区间内「应该打」的天数：周期 ∩ 习惯起止 ∩ 已经过去的天。
@@ -198,24 +209,24 @@ object HabitMath {
      */
     fun totalOf(
         habit: HabitEntity,
-        logs: List<HabitLogEntity>,
+        days: Set<LocalDate>,
         today: LocalDate,
     ): HabitStat {
         val start = LocalDate.ofEpochDay(habit.startEpochDay)
         val end = habit.endEpochDay?.let { LocalDate.ofEpochDay(it) } ?: today
         val windowEnd = minOf(end, today)
-        val days = loggedDays(logs, habit.id, start, windowEnd)
+        val logged = days.filter { it in start..windowEnd }.toSet()
         val eligible = eligibleDays(habit, start, windowEnd, today)
         val expected = expectedCount(habit.targetPerWeek, eligible)
         return HabitStat(
             period = HabitPeriod.TOTAL,
             start = start,
             end = windowEnd,
-            done = days.size,
+            done = logged.size,
             eligibleDays = eligible,
             expected = expected,
-            rate = if (expected <= 0) 0f else (days.size.toFloat() / expected).coerceAtMost(1f),
-            loggedDays = days,
+            rate = if (expected <= 0) 0f else (logged.size.toFloat() / expected).coerceAtMost(1f),
+            loggedDays = logged,
         )
     }
 
@@ -223,19 +234,6 @@ object HabitMath {
     fun weekStarts(today: LocalDate, firstDayOfWeek: DayOfWeek, count: Int): List<LocalDate> {
         val current = weekStartOf(today, firstDayOfWeek)
         return (0 until count).map { current.minusWeeks((count - 1 - it).toLong()) }
-    }
-
-    private fun loggedDays(
-        logs: List<HabitLogEntity>,
-        habitId: Long,
-        from: LocalDate,
-        to: LocalDate,
-    ): Set<LocalDate> {
-        val range = from.toEpochDay()..to.toEpochDay()
-        return logs.asSequence()
-            .filter { it.habitId == habitId && it.epochDay in range }
-            .map { LocalDate.ofEpochDay(it.epochDay) }
-            .toSet()
     }
 
     private fun Double.roundToAtLeastOne(): Int {

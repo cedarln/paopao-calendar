@@ -56,3 +56,17 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+/**
+ * v2 → v3：习惯加结束日期。
+ *
+ * 只 `ADD COLUMN` 一个可空 INTEGER，不重建表：Room 的升级校验按列名比对 actual/expected
+ * 的 schema（不比列顺序），所以新列追加在末尾就是合法的；而 `RENAME + CREATE + INSERT SELECT`
+ * 那套重建写法要连索引和外键一起手抄，多一份会写错的表面。
+ * 老行的 `endEpochDay` 落 NULL，语义正是「无期限」—— 装了 v0.1.0/v0.2.0 的习惯升级完不用补数据。
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `habits` ADD COLUMN `endEpochDay` INTEGER")
+    }
+}

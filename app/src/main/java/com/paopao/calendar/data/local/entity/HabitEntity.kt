@@ -26,6 +26,15 @@ data class HabitEntity(
     /** 每周目标次数，0 表示「每天」。 */
     val targetPerWeek: Int = 7,
     val startEpochDay: Long,
+    /**
+     * 结束日（含当天）；null 是「无期限」。
+     *
+     * 用可空而不是「9999-12-31」这类哨兵值：SQLite 里 NULL 与真实日期在查询条件上是同一套语义，
+     * 而哨兵值要求每个比较它的地方都记得特殊处理 —— 少处理一处就多一个「过期习惯还在日历里」的 bug。
+     * v2 装旧版的设备走 MIGRATION_2_3 加这一列，老习惯落 NULL，正好等于「一直有效」，
+     * 不需要为升级再补一次数据修复。
+     */
+    val endEpochDay: Long? = null,
     val categoryId: Long? = null,
     val archivedAtMillis: Long? = null,
 )
@@ -51,6 +60,11 @@ data class HabitEntity(
 data class HabitLogEntity(
     val habitId: Long,
     val epochDay: Long,
+    /**
+     * 完成时写的备注。列从 v1 就在，但一直没有任何读写入口 ——
+     * 「打卡时顺手记一句，以后回来翻」才是这条记录真正的用处，
+     * 只留一个勾的话半年后根本想不起来那天到底做了什么。
+     */
     val note: String = "",
 )
 

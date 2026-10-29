@@ -7,7 +7,9 @@ import com.paopao.calendar.data.local.dao.MemorialDao
 import com.paopao.calendar.data.local.entity.CategoryEntity
 import com.paopao.calendar.data.local.entity.FocusSessionEntity
 import com.paopao.calendar.data.local.entity.HabitEntity
+import com.paopao.calendar.data.local.entity.HabitLogEntity
 import com.paopao.calendar.data.local.entity.MemorialEntity
+import com.paopao.calendar.domain.habit.HabitMath
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -17,16 +19,27 @@ class HabitRepository(private val dao: HabitDao) {
 
     fun observeArchived(): Flow<List<HabitEntity>> = dao.observeArchived()
 
+    /** 过了结束日、还没归档的习惯，界面单独分区列。 */
+    fun observeFinished(today: LocalDate): Flow<List<HabitEntity>> = dao.observeFinished(today.toEpochDay())
+
     suspend fun find(id: Long): HabitEntity? = dao.findById(id)
 
     /** 桌面插件用的一次性快照。 */
     suspend fun findActive(): List<HabitEntity> = dao.findActive()
 
-    suspend fun findLogs(from: LocalDate, to: LocalDate): List<com.paopao.calendar.data.local.entity.HabitLogEntity> =
+    suspend fun findFinished(today: LocalDate): List<HabitEntity> = dao.findFinished(today.toEpochDay())
+
+    /** 导出用：含已归档，一条不漏。 */
+    suspend fun findAllIncludingArchived(): List<HabitEntity> = dao.findAllIncludingArchived()
+
+    suspend fun findLogs(from: LocalDate, to: LocalDate): List<HabitLogEntity> =
         dao.findLogsInRange(from.toEpochDay(), to.toEpochDay())
 
-    fun observeLogs(from: LocalDate, to: LocalDate): Flow<List<com.paopao.calendar.data.local.entity.HabitLogEntity>> =
+    fun observeLogs(from: LocalDate, to: LocalDate): Flow<List<HabitLogEntity>> =
         dao.observeLogsInRange(from.toEpochDay(), to.toEpochDay())
+
+    suspend fun findLog(habitId: Long, date: LocalDate): HabitLogEntity? =
+        dao.findLog(habitId, date.toEpochDay())
 
     suspend fun upsert(habit: HabitEntity): Long = if (habit.id == 0L) {
         dao.insert(habit)
@@ -36,26 +49,37 @@ class HabitRepository(private val dao: HabitDao) {
 
     suspend fun toggle(habitId: Long, date: LocalDate) = dao.toggle(habitId, date.toEpochDay())
 
+    /**
+     * 写这一天的备注；那天还没打卡时先补一条打卡。
+     *
+     * 「先打勾、回头再补一句」和「点进备注框直接写了一句」是同一个动作的两种顺序，
+     * 对用户不该有区别。但反过来不成立：只写备注不打卡，会在日历上凭空显示一个已完成，
+     * 所以这里补的是**完成事实本身**，不给用户留「记了但没做」的口子。
+     */
+    suspend fun setNote(habitId: Long, date: LocalDate, note: String) {
+        val epochDay = date.toEpochDay()
+        if (dao.findLog(habitId, epochDay) == null) {
+            dao.log(HabitLogEntity(habitId = habitId, epochDay = epochDay, note = note))
+        } else {
+            dao.setNote(habitId, epochDay, note)
+        }
+    }
+
     suspend fun archive(habitId: Long) = dao.archive(habitId)
 
     suspend fun delete(habit: HabitEntity) = dao.delete(habit)
 
     /**
      * 连续打卡天数（到今天为止，或到昨天为止 —— 后者让「今天还没打」不算断）。
+     *
+     * 回走逻辑在 [HabitMath.streakOf]，这里只负责把区间取回来：日历、插件与总览页
+     * 都要报同一个数，规则不能各写一遍。
      */
     suspend fun streak(habitId: Long, today: LocalDate, lookbackDays: Int = 365): Int {
         val days = dao.loggedDaysBetween(habitId, today.minusDays(lookbackDays.toLong()).toEpochDay(), today.toEpochDay())
             .map { LocalDate.ofEpochDay(it) }
             .toSet()
-        if (days.isEmpty()) return 0
-        var cursor = if (today in days) today else today.minusDays(1)
-        if (cursor !in days) return 0
-        var count = 0
-        while (cursor in days) {
-            count++
-            cursor = cursor.minusDays(1)
-        }
-        return count
+        return HabitMath.streakOf(days, today)
     }
 
     /** 本周完成率，用来决定习惯卡片上那个环该画多少。 */

@@ -3,6 +3,7 @@ package com.paopao.calendar
 import android.content.Context
 import androidx.room.Room
 import com.paopao.calendar.data.local.MIGRATION_1_2
+import com.paopao.calendar.data.local.MIGRATION_2_3
 import com.paopao.calendar.data.local.PaopaoDatabase
 import com.paopao.calendar.data.repository.CategoryRepository
 import com.paopao.calendar.data.repository.EventRepository
@@ -44,7 +45,7 @@ class AppContainer(context: Context) {
     )
         // v0.1.0 已经发出去了，装了旧版的设备升级时必须走迁移而不是重建，
         // 否则一升级就把日程、习惯和打卡全清掉。
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
 
     val settingsStore = SettingsStore(context)

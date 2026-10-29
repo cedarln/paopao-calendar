@@ -45,7 +45,7 @@ import com.paopao.calendar.data.local.entity.TagEntity
         PlanActionEntity::class,
         WorkoutLogEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class PaopaoDatabase : RoomDatabase() {

@@ -26,6 +26,28 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE archivedAtMillis IS NOT NULL ORDER BY archivedAtMillis DESC")
     fun observeArchived(): Flow<List<HabitEntity>>
 
+    /**
+     * 已过结束日、但用户还没归档的习惯。
+     *
+     * 单独一路查询而不是在内存里筛 `observeActive`：结束日本来就该是索引友好的条件，
+     * 而且列表页要把它和「正在进行」分开摆 —— 一个到期的习惯混在待打卡里只会让人以为打卡失败了。
+     */
+    @Query(
+        "SELECT * FROM habits WHERE archivedAtMillis IS NULL " +
+            "AND endEpochDay IS NOT NULL AND endEpochDay < :todayEpochDay ORDER BY endEpochDay DESC",
+    )
+    fun observeFinished(todayEpochDay: Long): Flow<List<HabitEntity>>
+
+    @Query(
+        "SELECT * FROM habits WHERE archivedAtMillis IS NULL " +
+            "AND endEpochDay IS NOT NULL AND endEpochDay < :todayEpochDay ORDER BY endEpochDay DESC",
+    )
+    suspend fun findFinished(todayEpochDay: Long): List<HabitEntity>
+
+    /** 导出用：一条不漏，含已归档。 */
+    @Query("SELECT * FROM habits ORDER BY id ASC")
+    suspend fun findAllIncludingArchived(): List<HabitEntity>
+
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun findById(id: Long): HabitEntity?
 
@@ -60,6 +82,18 @@ interface HabitDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun log(entry: HabitLogEntity)
+
+    /**
+     * 只改备注，不动打卡事实本身。
+     *
+     * 不复用 `log()` 的 REPLACE：那条要求把整行读回来再写回去，而「打完卡再补一句」
+     * 恰好是并发最高的一刻 —— 插件和界面谁后写谁赢，赢的那次可能带着过期的勾选状态。
+     */
+    @Query("UPDATE habit_logs SET note = :note WHERE habitId = :habitId AND epochDay = :epochDay")
+    suspend fun setNote(habitId: Long, epochDay: Long, note: String)
+
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND epochDay = :epochDay")
+    suspend fun findLog(habitId: Long, epochDay: Long): HabitLogEntity?
 
     @Query("DELETE FROM habit_logs WHERE habitId = :habitId AND epochDay = :epochDay")
     suspend fun unlog(habitId: Long, epochDay: Long)

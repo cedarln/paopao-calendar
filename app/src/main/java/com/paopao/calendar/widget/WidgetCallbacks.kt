@@ -5,6 +5,7 @@ import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import com.paopao.calendar.appContainer
+import com.paopao.calendar.domain.habit.HabitMath
 import com.paopao.calendar.domain.workout.TrainingMath
 import com.paopao.calendar.widget.habit.HabitWidget
 import com.paopao.calendar.widget.inventory.TodoInventoryWidget
@@ -45,7 +46,15 @@ class ToggleHabitTodayCallback : ActionCallback {
         parameters: ActionParameters,
     ) {
         val id = parameters[ParamHabitId] ?: return
-        context.appContainer.habitRepository.toggle(id, LocalDate.now())
+        val container = context.appContainer
+        val today = LocalDate.now()
+        val habit = container.habitRepository.find(id) ?: return
+        // 插件上那一行可能是到期前留下的快照，勾一下就不该再往记录里写一天
+        if (!HabitMath.isActiveOn(habit, today)) {
+            HabitWidget().update(context, glanceId)
+            return
+        }
+        container.habitRepository.toggle(id, today)
         HabitWidget().update(context, glanceId)
     }
 }

@@ -29,6 +29,7 @@ import androidx.glance.text.TextStyle
 import com.paopao.calendar.appContainer
 import com.paopao.calendar.data.local.entity.HabitEntity
 import com.paopao.calendar.data.local.entity.HabitLogEntity
+import com.paopao.calendar.domain.habit.HabitMath
 import com.paopao.calendar.ui.navigation.Routes
 import com.paopao.calendar.widget.WidgetStyles
 import com.paopao.calendar.widget.dayNight
@@ -58,7 +59,11 @@ class HabitWidget : GlanceAppWidget() {
         val container = context.appContainer
         val today = LocalDate.now()
         val weekMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        val habits = container.habitRepository.findActive().take(MAX_ROWS)
+        // 只列今天还在有效期内的：到期或还没开始的习惯不占这一格，
+        // 插件上留一行再也打不了勾的名字，只会让人以为打卡功能坏了。
+        val habits = container.habitRepository.findActive()
+            .filter { HabitMath.isActiveOn(it, today) }
+            .take(MAX_ROWS)
         val logs = container.habitRepository.findLogs(weekMonday, today).groupBy(HabitLogEntity::habitId)
         val rows = habits.map { habit ->
             val days = logs[habit.id].orEmpty().map { it.epochDay }.toSet()
@@ -80,7 +85,8 @@ class HabitWidget : GlanceAppWidget() {
                 )
                 Spacer(GlanceModifier.height(6.dp))
                 if (rows.isEmpty()) {
-                    Text(text = "还没有习惯", style = WidgetStyles.muted)
+                    // 一个习惯都没有、和有习惯但今天都不在有效期内，在插件这一格上是同一件事：没得勾
+                    Text(text = "今天没有要打卡的习惯", style = WidgetStyles.muted)
                 }
                 rows.forEach { row -> HabitRow(context, row) }
             }

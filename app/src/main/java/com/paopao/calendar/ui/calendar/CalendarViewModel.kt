@@ -5,11 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.paopao.calendar.AppContainer
 import com.paopao.calendar.data.local.entity.CategoryEntity
 import com.paopao.calendar.data.local.entity.EventEntity
+import com.paopao.calendar.data.local.entity.HabitEntity
+import com.paopao.calendar.data.local.entity.HabitLogEntity
 import com.paopao.calendar.data.local.entity.InventoryEntity
 import com.paopao.calendar.data.local.entity.MemorialEntity
 import com.paopao.calendar.data.local.entity.WorkoutLogEntity
 import com.paopao.calendar.data.local.entity.WorkoutPlanEntity
 import com.paopao.calendar.data.settings.AppSettings
+import com.paopao.calendar.domain.habit.Completion
+import com.paopao.calendar.domain.habit.HabitMath
 import com.paopao.calendar.domain.model.DayCell
 import com.paopao.calendar.domain.model.MonthGrid
 import com.paopao.calendar.domain.workout.TrainingMath
@@ -25,7 +29,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** 日历页某一天的议程：日程、到期事项、当天发生的纪念日、训练打卡与待打卡计划。 */
+/** 日历页某一天的议程：日程、到期事项、当天发生的纪念日、训练打卡与待打卡计划、已完成的习惯。 */
 data class DayAgenda(
     val date: LocalDate = LocalDate.now(),
     val events: List<EventEntity> = emptyList(),
@@ -33,9 +37,11 @@ data class DayAgenda(
     val memorials: List<MemorialEntity> = emptyList(),
     val workouts: List<WorkoutLogEntity> = emptyList(),
     val planned: List<WorkoutPlanEntity> = emptyList(),
+    val habits: List<Completion> = emptyList(),
 ) {
     val isEmpty: Boolean
-        get() = events.isEmpty() && items.isEmpty() && memorials.isEmpty() && workouts.isEmpty() && planned.isEmpty()
+        get() = events.isEmpty() && items.isEmpty() && memorials.isEmpty() &&
+            workouts.isEmpty() && planned.isEmpty() && habits.isEmpty()
 }
 
 data class CalendarUiState(
@@ -47,6 +53,7 @@ data class CalendarUiState(
     val eventDays: Set<LocalDate> = emptySet(),
     val itemDays: Set<LocalDate> = emptySet(),
     val workoutDays: Set<LocalDate> = emptySet(),
+    val habitDays: Set<LocalDate> = emptySet(),
     val agenda: DayAgenda = DayAgenda(),
     val categories: List<CategoryEntity> = emptyList(),
 )
@@ -87,13 +94,22 @@ class CalendarViewModel(
                 container.workoutRepository.observeLogs(gridFrom, gridTo),
                 container.workoutRepository.observePlans(),
             ) { logs, plans -> TrainingSlice(logs, plans.map { it.plan }) }
+            // 习惯同理：习惯本体和这段时间的打卡记录要成对进来才算得出标记
+            val habits = combine(
+                container.habitRepository.observeActive(),
+                container.habitRepository.observeLogs(gridFrom, gridTo),
+            ) { list, logs -> HabitSlice(list, logs) }
+            val extras = combine(workouts, habits) { training, habitRows -> AgendaExtras(training, habitRows) }
             combine(
                 container.eventRepository.observeInRange(gridFrom, gridTo),
                 container.inventoryRepository.observeScheduledBetween(gridFrom, gridTo),
                 container.memorialRepository.observeAll(),
                 container.categoryRepository.observeByScope(CategoryEntity.SCOPE_EVENT),
-                workouts,
-            ) { events, items, memorials, categories, training ->
+                extras,
+            ) { events, items, memorials, categories, sources ->
+                val training = sources.training
+                val habitRows = sources.habits
+                val completedHabits = HabitMath.completionsOn(habitRows.habits, habitRows.logs, query.selected)
                 CalendarUiState(
                     settings = query.settings,
                     today = today,
@@ -103,6 +119,12 @@ class CalendarViewModel(
                     eventDays = container.eventRepository.daysWithEvents(events, gridFrom, gridTo),
                     itemDays = container.inventoryRepository.scheduledDays(items, gridFrom, gridTo),
                     workoutDays = training.logs.map { LocalDate.ofEpochDay(it.epochDay) }.toSet(),
+                    habitDays = HabitMath.loggedDaysInRange(
+                        habitRows.habits,
+                        habitRows.logs,
+                        gridFrom,
+                        gridTo,
+                    ),
                     agenda = DayAgenda(
                         date = query.selected,
                         events = container.eventRepository.occurrencesOn(events, query.selected),
@@ -110,6 +132,7 @@ class CalendarViewModel(
                         memorials = memorials.filter { occursOn(it, query.selected) },
                         workouts = training.logs.filter { it.epochDay == query.selected.toEpochDay() },
                         planned = TrainingMath.plansToCheckIn(training.plans, training.logs, query.selected),
+                        habits = completedHabits,
                     ),
                     categories = categories,
                 )
@@ -217,6 +240,17 @@ class CalendarViewModel(
     private data class TrainingSlice(
         val logs: List<WorkoutLogEntity>,
         val plans: List<WorkoutPlanEntity>,
+    )
+
+    private data class HabitSlice(
+        val habits: List<HabitEntity>,
+        val logs: List<HabitLogEntity>,
+    )
+
+    /** 训练与习惯各占一路，合并成第三路才挤得进 combine 的五个位置。 */
+    private data class AgendaExtras(
+        val training: TrainingSlice,
+        val habits: HabitSlice,
     )
 
     companion object {

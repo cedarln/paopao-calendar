@@ -7,6 +7,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.paopao.calendar.data.settings.ThemeMode
 
 /**
@@ -39,6 +40,26 @@ val OutOfMonthText = Color(0xFFC7CBD1)
  */
 val TrainingLight = Color(0xFF3F7FA8)
 val TrainingDark = Color(0xFF8FC7DE)
+
+/**
+ * 习惯在日历格子里的标记色。
+ *
+ * 日程是青绿、事项是珊瑚、训练是蓝，剩下能一眼分开的只有紫这一路，而色板里习惯
+ * 恰好也常挑紫色，语义对得上。刻意比前三档浅一点：一个格子最多同时挂四个标记，
+ * 谁都比谁抢眼就不叫标记了。
+ */
+val HabitMarkLight = Color(0xFF7C5CBF)
+val HabitMarkDark = Color(0xFFB9A0E8)
+
+/**
+ * 日历上的习惯标记色。
+ *
+ * 取的是当前配色方案的背景亮度而不是 `isSystemInDarkTheme()`：应用内可以强制浅色/深色，
+ * 跟系统设置判断会错开 —— 用户在浅色系统里选了深色主题，标记就成了一团看不见的浅紫。
+ */
+@Composable
+fun habitMarkColor(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) HabitMarkDark else HabitMarkLight
 
 /** 表单里给日程/事项/习惯/纪念日挑颜色用的固定色板。 */
 val SwatchPalette = listOf(

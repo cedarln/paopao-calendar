@@ -31,6 +31,7 @@ import com.paopao.calendar.domain.model.MonthClockStyle
 import com.paopao.calendar.domain.model.MonthColorScheme
 import com.paopao.calendar.ui.theme.FestivalBadge
 import com.paopao.calendar.ui.theme.HolidayBadge
+import com.paopao.calendar.ui.theme.habitMarkColor
 import com.paopao.calendar.ui.theme.LunarText
 import com.paopao.calendar.ui.theme.OutOfMonthText
 import com.paopao.calendar.ui.theme.SolarTermBadge
@@ -101,8 +102,11 @@ fun DayCellView(
 ) {
     val scheme = state.settings.colorScheme
     val base = dayTextColor(cell, scheme)
+    val inMonth = cell.inCurrentMonth
     // 训练角标：密度点只在 DENSITY_DOT 外观下画，而「这天练过」在其余三种外观里也得看得见
-    val trained = cell.inCurrentMonth && cell.date in state.workoutDays &&
+    val trained = inMonth && cell.date in state.workoutDays &&
+        state.settings.clockStyle != MonthClockStyle.DENSITY_DOT
+    val habitDone = inMonth && cell.date in state.habitDays &&
         state.settings.clockStyle != MonthClockStyle.DENSITY_DOT
 
     Box(
@@ -161,6 +165,17 @@ fun DayCellView(
                     .background(MaterialTheme.colorScheme.tertiary),
             )
         }
+        // 习惯角标放在对角：一天里既练了又打了卡时，两个标记不用抢同一个位置
+        if (habitDone) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 3.dp, start = 3.dp)
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .border(width = 1.5.dp, color = habitMarkColor(), shape = CircleShape),
+            )
+        }
     }
 }
 
@@ -172,6 +187,7 @@ private fun subContent(cell: DayCell, state: CalendarUiState, base: Color) {
             hasEvent = cell.date in state.eventDays,
             hasItem = cell.date in state.itemDays,
             hasWorkout = cell.date in state.workoutDays,
+            hasHabit = cell.date in state.habitDays,
         )
         MonthClockStyle.LARGE -> SpacerRow()
         MonthClockStyle.LUNAR_SUB -> Text(
@@ -191,8 +207,14 @@ private fun SpacerRow() {
     Box(modifier = Modifier.size(width = 24.dp, height = 12.dp))
 }
 
+/**
+ * 密度点一行四个：日程、事项、训练是实心点，习惯是空心圈。
+ *
+ * 习惯刻意用不同的形状而不是第五种颜色 —— 一个格子最多挂四个标记，
+ * 颜色再多样也分辨不出「这个是习惯」，形状能。
+ */
 @Composable
-private fun DensityRow(hasEvent: Boolean, hasItem: Boolean, hasWorkout: Boolean) {
+private fun DensityRow(hasEvent: Boolean, hasItem: Boolean, hasWorkout: Boolean, hasHabit: Boolean) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -201,7 +223,18 @@ private fun DensityRow(hasEvent: Boolean, hasItem: Boolean, hasWorkout: Boolean)
         if (hasEvent) Dot(color = MaterialTheme.colorScheme.primary)
         if (hasItem) Dot(color = MaterialTheme.colorScheme.secondary)
         if (hasWorkout) Dot(color = MaterialTheme.colorScheme.tertiary)
+        if (hasHabit) Ring(color = habitMarkColor())
     }
+}
+
+@Composable
+private fun Ring(color: Color) {
+    Box(
+        modifier = Modifier
+            .size(6.dp)
+            .clip(CircleShape)
+            .border(width = 1.5.dp, color = color, shape = CircleShape),
+    )
 }
 
 @Composable

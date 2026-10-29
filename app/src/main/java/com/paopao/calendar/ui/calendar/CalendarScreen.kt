@@ -5,6 +5,7 @@ package com.paopao.calendar.ui.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
@@ -66,6 +68,7 @@ import com.paopao.calendar.data.local.entity.WorkoutLogEntity
 import com.paopao.calendar.data.local.entity.WorkoutPlanEntity
 import com.paopao.calendar.data.settings.AppSettings
 import com.paopao.calendar.domain.calendar.ChineseCalendar
+import com.paopao.calendar.domain.habit.Completion
 import com.paopao.calendar.domain.model.CalendarViewMode
 import com.paopao.calendar.domain.model.Recurrence
 import com.paopao.calendar.domain.model.RecurrenceCodec
@@ -182,6 +185,8 @@ fun CalendarScreen(
             onUndoWorkout = calendarViewModel::undoWorkout,
             onOpenTraining = { onNavigate(Routes.TRAINING) },
             onRunPlan = { planId -> onNavigate(Routes.workoutRun(planId)) },
+            onOpenHabits = { onNavigate(Routes.HABIT) },
+            onOpenHabit = { habitId -> onNavigate(Routes.habitStats(habitId)) },
             modifier = Modifier.weight(1f),
         )
     }
@@ -285,6 +290,8 @@ private fun DayAgenda(
     onUndoWorkout: (WorkoutLogEntity) -> Unit,
     onOpenTraining: () -> Unit,
     onRunPlan: (Long) -> Unit,
+    onOpenHabits: () -> Unit,
+    onOpenHabit: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val agenda = state.agenda
@@ -293,7 +300,11 @@ private fun DayAgenda(
             AgendaHeader(date = state.selectedDate, isToday = state.selectedDate == state.today)
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                // 四个 chip 在 360dp 宽的机器上刚好挤出屏幕，让这一行能横滑比压缩字号划算
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
                 AssistChip(
                     onClick = onAddEvent,
                     label = { Text("添加日程") },
@@ -323,6 +334,17 @@ private fun DayAgenda(
                         )
                     },
                 )
+                AssistChip(
+                    onClick = onOpenHabits,
+                    label = { Text("习惯") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Repeat,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    },
+                )
             }
             Spacer(Modifier.height(6.dp))
         }
@@ -342,6 +364,13 @@ private fun DayAgenda(
         }
         items(agenda.items, key = { "item-${it.id}" }) { item ->
             InventoryRow(item = item, onToggle = { onToggleItem(item) })
+        }
+        // 只列已完成的习惯：这天没做就不会出现，用户要的是「这天我做到了什么」，不是又一屏待办
+        items(agenda.habits, key = { "habit-${it.habit.id}" }) { completion ->
+            HabitDoneRow(
+                completion = completion,
+                onOpen = { onOpenHabit(completion.habit.id) },
+            )
         }
         // 待打卡排在已打卡前面：这一屏的价值是「还剩什么没做」，不是复盘
         items(agenda.planned, key = { "planned-${it.id}" }) { plan ->
@@ -465,6 +494,60 @@ private fun WorkoutRow(log: WorkoutLogEntity, onUndo: () -> Unit) {
                 )
             }
             TextButton(onClick = onUndo) { Text("撤销") }
+        }
+    }
+}
+
+/**
+ * 这一天打过的习惯。
+ *
+ * 只有勾了才出现（口径见 `HabitMath.completionsOn`），备注直接摊开在第二行 ——
+ * 会想回看「那天为什么打了这个卡」的人，就是正在看这一天的人。
+ */
+@Composable
+private fun HabitDoneRow(completion: Completion, onOpen: () -> Unit) {
+    val accent = Color(completion.habit.colorArgb)
+    Card(
+        onClick = onOpen,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = completion.habit.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (completion.note.isNotBlank()) {
+                    Text(
+                        text = completion.note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }
